@@ -100,9 +100,7 @@ def route_types(header,reader,types):
     i=header.index('route_type')
     for row in reader:
         routes.add(int(row[i]))
-    print routes
-    exit(1)
-    return ('route','type'), sorted_dict({e: types[e] if types.has_key(e) else 'Unbekannt' for e in routes},1)
+    return ('route','type'), sorted_dict([[e, types[e] if types.has_key(e) else 'Unbekannt'] for e in routes],1)
 
 def areacode2city(x, name, area_codes, default_mapping):
     if default_mapping.has_key(x):
@@ -135,7 +133,7 @@ def csv2stdout(d):
     writer = csv.writer(sys.stdout, delimiter=',')
     writer.writerow(d[0])
     for e in d[1]:
-        row = [i.encode('utf8') for i in e]
+        row = [unicode(i).encode('utf8') for i in e]
         writer.writerow(row)
 
 if __name__ == '__main__':

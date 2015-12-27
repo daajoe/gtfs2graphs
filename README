@@ -1,0 +1,8 @@
+Files:
+- route_types.csv contains route type mappings from [1]
+
+References:
+[1]: Extended GTFS Route Types; https://support.google.com/transitpartners/answer/3520902?hl=en
+[2]: Google Transit Extensions to GTFS; https://support.google.com/transitpartners/answer/2450962?hl=en
+[3]: General Transit Feed Specification Reference; https://developers.google.com/transit/gtfs/reference?hl=en#routes_fields
+[4]: What is GTFS?; https://developers.google.com/transit/gtfs/?hl=en

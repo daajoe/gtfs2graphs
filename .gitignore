@@ -55,3 +55,14 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# Emacs
+*~
+\#*
+\.\#*
+
+# Graphs
+*.gml
+
+# Temp Files
+area_code.csv

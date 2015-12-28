@@ -78,7 +78,7 @@ def zopen(path,filename):
                 raise IOError('Unknown file type for file %s.' %path)
         finally:
             fh.close()
-        
+
 def read_routes(path='route_types_extended.csv'):
     with open(path, 'rb') as csv_route_types:
         reader = csv.reader(csv_route_types, delimiter=',')
@@ -117,15 +117,31 @@ def agencyid2city(x, name, phone, default_mapping):
         return default_mapping[x]
     #logging.warning('Unknown area code for %s (%s) phone:%s' %(x, name, phone))
     return x
-    
+
+def indexOrNone(L,value):
+    try:
+        return L.index(value)
+    except ValueError:
+        return  None
+
 def agencies(header,reader,default_mapping):
-    #areacode2city(row[5], row[1], area_codes, default_mapping)
-    return ('short_name', 'long_name','place'), sorted_dict([[row[0].strip('-_'), row[1].decode('utf8'),agencyid2city(row[0], row[1], row[5] if len(row)>4 else None, default_mapping)] for row in reader],2)
+    phone = indexOrNone(header, 'agency_phone')
+    agency_id = indexOrNone(header, 'agency_id')
+    agency_name = indexOrNone(header, 'agency_name')
+    if agency_id is None:
+        agency_id = agency_name
+    res = []
+    for row in reader:
+        city = agencyid2city(row[agency_id], row[agency_name], row[phone] if phone else None, default_mapping)
+        res.append([row[agency_id].strip('-_'), row[agency_name].decode('utf8'), city])
+    return ('agency_id', 'agency_name','place'), sorted_dict(res,2)
 
 def info(path,filename, func):
     with zopen(path, filename) as fh:
         reader = csv.reader(StringIO.StringIO(fh), delimiter=',')
         header = reader.next()
+        #remove bom if necessary
+        header[0] = header[0][3:] if header[0].decode('utf8').startswith(u'\ufeff') else header[0]
         res=func(header,reader)
     return res
 

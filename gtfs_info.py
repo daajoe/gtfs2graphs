@@ -125,6 +125,8 @@ def indexOrNone(L,value):
         return  None
 
 def agencies(header,reader,default_mapping):
+    #strip whitespaces
+    header=map(lambda x: x.strip(), header)
     phone = indexOrNone(header, 'agency_phone')
     agency_id = indexOrNone(header, 'agency_id')
     agency_name = indexOrNone(header, 'agency_name')
@@ -132,6 +134,9 @@ def agencies(header,reader,default_mapping):
         agency_id = agency_name
     res = []
     for row in reader:
+        #skip empty lines
+        if row == []:
+            continue
         city = agencyid2city(row[agency_id], row[agency_name], row[phone] if phone else None, default_mapping)
         res.append([row[agency_id].strip('-_'), row[agency_name].decode('utf8'), city])
     return ('agency_id', 'agency_name','place'), sorted_dict(res,2)

@@ -7,7 +7,6 @@ import os
 import sys
 import yaml
 
-
 def options():
     usage  = 'usage: %prog [options] file'
     parser = optparse.OptionParser(usage=usage)
@@ -53,8 +52,10 @@ def extract(path, M):
     logging.info('Done reading graph')
 
     labels = dict()
+    node_id=dict()
     for v, data in G.nodes_iter(data=True):
         labels[v]=data['label']
+        node_id[data['label']]=v
 
     logging.info('Creating graphs ...')
     for v,w in G.edges_iter():
@@ -62,7 +63,13 @@ def extract(path, M):
         for key in M.iterkeys():
             if route_type in key:
                 for t in M[key]:
-                    d[t].add_edge(labels[v],labels[w])
+                    d[t].add_edge(labels[v],labels[w],route_type=route_type, area=G[v][w]['area'], agency=G[v][w]['agency'],weight=G[v][w]['weight'])
+    
+    logging.info('Setting vertex attributes ...')
+    for t in d.keys():
+        for v in d[t].nodes_iter():
+            d[t].node[v]['lat']=G.node[node_id[v]]['lat']
+            d[t].node[v]['lon']=G.node[node_id[v]]['lon']
     logging.info('Done creating graphs')
     return d
 
@@ -83,7 +90,4 @@ if __name__ == '__main__':
     M=mapping(config['types'])
     d=extract(path,M)
     write_graphs(d,output_path_prefix)
-
-
-
 

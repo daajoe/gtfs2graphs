@@ -75,7 +75,6 @@ def extract(path, M):
 
 def write_graphs(d,prefix):
     for k in d:
-        print k
         path = '%s_subgraph_%s.gml' %(prefix, k)
         logging.warning('Writing graph %s to file %s' %(k, path))
         nx.write_gml(d[k], path)

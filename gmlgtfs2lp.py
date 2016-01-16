@@ -46,10 +46,12 @@ def gml2lp(stream,filename,int_only=False):
             stream.write('edge(%i,%i).\n' % (v, w))
         else:
             try:
-                stream.write('edge("%s","%s",%s,"%s",%s).\n' % (rm_dup_whs(labels[v].encode('utf8')), rm_dup_whs(labels[w].encode('utf8')),G[v][w]['route_type'],G[v][w]['agency'].encode('utf8'),G[v][w]['weight']))
+                x='edge("%s","%s",%s,"%s",%s).\n' %(rm_dup_whs(labels[v]), rm_dup_whs(labels[w]),G[v][w]['route_type'],G[v][w]['agency'],G[v][w]['weight'])
+                stream.write(x.encode('utf8'))
             except KeyError:
                 pass
-            stream.write('edge("%s","%s").\n' % (rm_dup_whs(labels[v].encode('utf8')), rm_dup_whs(labels[w].encode('utf8'))))
+            x = 'edge("%s","%s").\n' % (rm_dup_whs(labels[v]), rm_dup_whs(labels[w]))
+            stream.write(x.encode('utf8'))
 
 
 if __name__ == '__main__':

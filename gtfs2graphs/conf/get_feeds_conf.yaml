@@ -1,0 +1,6 @@
+feed_url: 'http://api.transitfeeds.com/v1/getFeeds'
+version_url: 'http://api.transitfeeds.com/v1/getLatestFeedVersion'
+key: 
+user_agent: 'Mozilla/5.0 (Linux i686)'
+feed_path: './feeds'
+timeout: 10

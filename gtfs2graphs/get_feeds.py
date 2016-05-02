@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import codecs
 import collections
 import csv
 import eventlet
@@ -22,14 +23,7 @@ logging.basicConfig(level=logging.INFO)
 termsize = map(lambda x: int(x), os.popen('stty size', 'r').read().split())
 
 #TODO: logging config
-print __file__
-print os.path.realpath(__file__)
-
-def read_config(config_file='%s/conf/%s_conf.yaml' %(os.path.dirname(__file__),os.path.splitext(os.path.basename(os.path.realpath(__file__)))[0])):
-    print config_file
-    with open(config_file, 'r') as f:
-        return yaml.load(f)
-
+#TODO: remove empty files and mark as empty
 config=read_config()
 
 class Feed(object):
@@ -68,7 +62,9 @@ class Feed(object):
             logging.error('Empty File for url "%s"', feed_url)
             raise TypeError('Empty File for url %s' %feed_url) 
         else:
-            widgets = ['%s (%s->%s):'%(feed_name,feed_url,basename), Percentage(), ' ', Bar(marker=RotatingMarker()),
+            if type(feed_name) == unicode:
+                feed_name = feed_name.encode('ascii', errors='ignore')
+            widgets = ['%s (%s->%s):'%('',feed_url,basename), Percentage(), ' ', Bar(marker=RotatingMarker()),
                        ' ', ETA(), ' ', FileTransferSpeed()]
             pbar = ProgressBar(widgets=widgets, maxval=content_length).start()
             pbar.start()
@@ -204,6 +200,7 @@ class FeedList(object):
         return self.__api.get_all_feeds_as_csv().getvalue()
     
     def save_feed(self,feed_name,feed_url,filename,if_modified_since):
+        filename = filename.encode('ascii',errors='ignore')
         if not feed_url or feed_url == 'NA':
             logging.error('URL missing for feed "%s" (url "%s").', feed_name, feed_url)
             return False, 'Missing url', None
@@ -226,6 +223,7 @@ class FeedList(object):
                 except urllib2.URLError, e:
                     try:
                         if e.code == 304:
+                            print filename
                             logging.info('File "%s" for feed "%s" (url "%s") is up-to-date.', os.path.basename(filename), feed_name, feed_url)
                             return True, 'File "%s" for feed "%s" (url "%s") is up-to-date.' %(filename, feed_name, feed_url), if_modified_since
                     except AttributeError, e:
@@ -238,8 +236,11 @@ class FeedList(object):
                 try:
                     arch.normalize(replace=True)
                 except zipfile.BadZipfile, e:
-                    logging.warning('Badzip for feed "%s" (url "%s" downloaded.', feed_name, feed_url)
+                    logging.warning('Badzip for feed "%s" (url "%s") downloaded.', feed_name, feed_url)
                     return False, 'BadZip', last_modified
+                except ValueError, e:
+                    logging.warning('Missing file in "%s" (url "%s"). Error Message was:', feed_name, feed_url, e)
+                    return False, 'Missing file.', last_modified
                 return True, 'OK', last_modified
         except KeyboardInterrupt, e:
             logging.warning('CTRL+C hit. Stopping download. Marking download as unsuccessful.')
@@ -249,14 +250,14 @@ class FeedList(object):
     def save_all_feeds(self):
         f=self.get_feeds()
         widgets = ['Processed: ', Counter(), ' of %i feeds (' %len(f), Timer(), ')']
-        pbar = ProgressBar(widgets=widgets,maxval=len(f))
+        pbar = ProgressBar(widgets=widgets,maxval=len(f)-1)
         processed = self.data
         #f[1:]
         for feed in pbar(f[1:]):
             #check whether feed is in datafile
             d=self.data.get(feed['api_id'])
             if_modified_since=d.get('last_modified') if d and d.get('successful') else 'Thu, 01 Jan 1970 00:00:00 GMT'
-            filename='%s/%s.zip' %(self.__path,feed['name'].replace(' ', '_').replace('/','-'))
+            filename='%s/%s.zip' %(self.__path,feed['name'].replace(' ', '_').replace('/','-').encode('ascii', errors='ignore'))
             successful,msg,last_modified=self.save_feed(feed['name'],feed['url'],filename,if_modified_since)
             if not successful:
                 logging.warning('Removing incomplete file.')

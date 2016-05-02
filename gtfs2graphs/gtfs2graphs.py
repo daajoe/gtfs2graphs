@@ -7,6 +7,7 @@ import logging
 import logging.config
 from itertools import izip
 from gtfs_info import *
+from helpers import setup_logging, read_config
 import networkx as nx
 import optparse
 import os
@@ -14,17 +15,18 @@ import sys
 import transitfeed
 from zipfile import is_zipfile
 
-#setup logging
-logging.config.fileConfig('logging.conf')
+setup_logging()
 
 def options():
     usage  = 'usage: %prog [options] file'
     parser = optparse.OptionParser(usage=usage)
     parser.add_option('--output_file', dest='output_file', type='string',
-                      help='Output file name [default: "./%file%.gml"]', default=None)
+                      help='Output file name [default: "./%file%.%type%"]', default=None)
     opts, files = parser.parse_args(sys.argv[1:])
     if len(files) < 1:
         logging.error('No files given %s.' %','.join(files))
+        print '*'*80
+        parser.print_help()
         exit(1)
     if len(files) > 2:
         logging.error('Too many files given. Only one file expected.')
@@ -35,13 +37,10 @@ def options():
             logging.error('File "%s" is not a zipfile.' %path)
             exit(1)
     if not opts.output_file:
-        opts.output_file='%s.gml' %os.path.splitext(path)[0]
+        #TODO: set by type
+        opts.output_file='%s.dimacs' %os.path.splitext(path)[0]
         logging.warning('No outputfile given (by option --output_file) using default output file "%s"' %opts.output_file)
     return opts, path
-
-def read_config(config_file='%s_conf.yaml' %os.path.splitext(os.path.basename(__file__))[0]):
-    with open(config_file, 'r') as f:
-        return yaml.load(f)
 
 def pairwise(t):
     if t == []:
@@ -84,7 +83,8 @@ def write_gml(G,output_file='test.gml'):
     
 if __name__ == '__main__':
     opts,path=options()
-    gtfs_info_config=read_config(os.path.realpath('./gtfs_info_conf.yaml'))
+    gtfs_info_config=read_config(filename='gtfs_info.py')
+    #TODO: error on first start
     agencies_mapping=gtfs_info_config['agencies']['mappings']
     places=info(path,'agency.txt', lambda x,y: agencies(x,y,agencies_mapping))
     places={e[0]: e[2] for e in places[1]}

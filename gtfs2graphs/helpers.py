@@ -1,5 +1,20 @@
 # -*- coding: utf-8 -*-
+#import contextlib
 import logging
+from os.path import *
+import yaml
+
+def read_config(filename=__file__, config_dir=dirname(__file__), config_pattern='%s/conf/%s_conf.yaml'):
+    print filename
+    config_file = config_pattern %(config_dir, splitext(basename(realpath(filename)))[0])
+    print config_file
+    if basename(__file__) == 'helpers.py':
+        return {}
+    with open(config_file, 'r') as f:
+        return yaml.load(f)
+
+def setup_logging(config_file='%s/conf/logging.conf' %(dirname(__file__))):
+    logging.config.fileConfig(config_file)
 
 def nested_get(d, keys):
     try:

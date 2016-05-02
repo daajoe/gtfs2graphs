@@ -5,6 +5,7 @@
 from collections import defaultdict
 from contextlib import contextmanager
 import csv
+from helpers import setup_logging, read_config
 from itertools import ifilter
 import logging
 import logging.config
@@ -20,8 +21,7 @@ import urllib2
 import yaml
 from zipfile import ZipFile, is_zipfile
 
-#setup logging
-logging.config.fileConfig('logging.conf')
+setup_logging()
 
 def options():
     usage  = 'usage: %prog [options] [files]'
@@ -32,11 +32,6 @@ def options():
                       action='store_true', help="Show used route types", default=False)
     opts, files = parser.parse_args(sys.argv[1:])
     return opts, files
-
-def read_config(config_file='%s_conf.yaml' %os.path.splitext(os.path.basename(__file__))[0]):
-    with open(config_file, 'r') as f:
-        return yaml.load(f)
-
 
 def read_area_codes(tmp_file,url):
     res = {}

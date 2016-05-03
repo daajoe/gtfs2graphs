@@ -114,6 +114,5 @@ def write_dimacs(G,output,symtab=True,labels=True,gtfs_filename='',descriptor='t
 
     output.write('p %s %i %i' %(descriptor,G.num_edges(),G.num_vertices()))
     for x,y in G:
-        output.write('\n')
-        output.write('e %s %s' %(x,y))
+        output.write('e %s %s\n' %(x,y))
     output.flush()

@@ -1,5 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+#
+# Copyright 2016
+# Johannes K. Fichte, Vienna University of Technology, Austria
+#
+# gtfs2graphs is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.  gtfs2graphs is distributed in
+# the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE.  See the GNU General Public License for more
+# details.  You should have received a copy of the GNU General Public
+# License along with gtfs2graphs.  If not, see
+# <http://www.gnu.org/licenses/>.
 
 class Graph(object):
     def __init__(self):
@@ -40,7 +54,6 @@ class Graph(object):
 
     def num_vertices(self):
         return len(self.__tab)
-
     
     def get_symtab(self):
         return self.__tab
@@ -53,3 +66,10 @@ class Graph(object):
 
     def number_of_edges(self):
         return len(self.__edges)
+
+    def __getitem__(self,x):
+        if isinstance(x,tuple):
+            return self.get_edge_labels()[x]
+        else:
+            return self.get_node_labels()[x]
+

@@ -11,6 +11,7 @@ import optparse
 import os
 import sys
 import transitfeed
+from utils.extract_route_types import extract_route_types
 from utils.gtfs_info import *
 from utils.helpers import setup_logging, read_config
 from utils.graph import Graph
@@ -29,8 +30,10 @@ def options():
                       help='Do not output labels [default: %default]')
     parser.add_option('--stdout', dest='stdout',  default=False,
                       help='Write output to stdout [default: %default]', action='store_true')
+    parser.add_option('--no_split', dest='split',  default=True, action='store_false',
+                      help='Do not provide additional transport type specific graphs (bus, metro, bus+metro,...). For route types configuration see: "conf/extract_route_types_conf.yaml". For route types see: "conf/route_types.csv" and "conf/route_types_extended.csv".')
     parser.add_option('--output_type', dest='output_type',  type='choice', choices=['gml','lp','dimacs'], 
-                      help='Specifies the output type [default: %default]; possible values: gml, lp, dimacs', default='dimacs')
+                      help='Specifies the output type [default: %default]; allowed values: gml, lp, dimacs', default='dimacs')
     opts, files = parser.parse_args(sys.argv[1:])
     if len(files) < 1:
         logging.error('No files given %s.' %','.join(files))
@@ -83,7 +86,31 @@ def read_and_extract_graph(path,area):
         agency = feed.routes[trip.route_id].agency_id.strip('-_') if feed.routes[trip.route_id].agency_id else None
         add_stops2edges(G,trip.GetStopTimes(None), route_type, agency, area)
     return G
+
+
+def save_graph(G,output_file,stdout,gtfs_filename,output_type,symtab,labels):
+    if output_type == 'dimacs':
+        from utils.graph_output import write_dimacs as write_graph
+    elif output_type == 'lp':
+        from utils.graph_output import write_lp as write_graph
+    elif output_type == 'gml':
+        from utils.graph_output import write_gml as write_graph
+    else:
+        logging.error('Output type (%s) not implemented' %opts.output_type)    
+
+    output = cStringIO.StringIO()
+    write_graph(G,symtab=symtab,labels=labels,output=output,gtfs_filename=gtfs_filename)
     
+    if not stdout:
+        logging.warning('Writing output to file')
+        with open(output_file, 'w') as f:
+            f.write(output.getvalue())
+            f.flush()
+        logging.warning('Output written to: %s' %output_file)
+    else:
+        print output.getvalue()
+
+
 if __name__ == '__main__':
     opts,path=options()
     gtfs_info_config=read_config(filename='gtfs_info.py')
@@ -91,25 +118,13 @@ if __name__ == '__main__':
     places=info(path,'agency.txt', lambda x,y: agencies(x,y,agencies_mapping))
     places={e[0]: e[2] for e in places[1]}
     G=read_and_extract_graph(path,places)
-
-    if opts.output_type == 'dimacs':
-        from utils.graph_output import write_dimacs as write_graph
-    elif opts.output_type == 'lp':
-        from utils.graph_output import write_lp as write_graph
-    elif opts.output_type == 'gml':
-        from utils.graph_output import write_gml as write_graph
-    else:
-        logging.error('Output type (%s) not implemented' %opts.output_type)
-
-    output = cStringIO.StringIO()
-    write_graph(G,symtab=opts.symtab,labels=opts.labels,output=output,gtfs_filename=os.path.basename(path))
-
+    save_graph(G,output_file=opts.output_file,stdout=opts.stdout,gtfs_filename=os.path.basename(path),output_type=opts.output_type,symtab=opts.symtab,labels=opts.labels)
     
-    if not opts.stdout:
-        logging.warning('Writing output to file')
-        with open(opts.output_file, 'w') as f:
-            f.write(output.getvalue())
-            f.flush()
-        logging.warning('Output written to: %s' %opts.output_file)
-    else:
-        print output.getvalue()
+    D=extract_route_types(G)
+    #TODO: NEXT
+    for k,g in D.iteritems():
+        print opts.output_file
+        output_filename, output_file_extension = os.path.splitext(opts.output_file)
+        output_filename = '%s_%s%s' %(output_filename, k, output_file_extension)
+        filename=opts.output_file
+        save_graph(g,output_file=output_filename,stdout=opts.stdout,gtfs_filename=os.path.basename(path),output_type=opts.output_type,symtab=opts.symtab,labels=opts.labels)

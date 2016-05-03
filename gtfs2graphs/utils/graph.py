@@ -50,3 +50,6 @@ class Graph(object):
 
     def get_node_labels(self):
         return self.__node_label
+
+    def number_of_edges(self):
+        return len(self.__edges)

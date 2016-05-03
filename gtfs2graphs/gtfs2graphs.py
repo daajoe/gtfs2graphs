@@ -24,12 +24,13 @@ def options():
     parser.add_option('--output_file', dest='output_file', type='string',
                       help='Output file name [default: "./%file%.%type%"]', default=None)
     parser.add_option('--no_symtab', dest='symtab', action='store_false', default=True,
-                      help='Do not output symtab [default: False]')
+                      help='Do not output symtab [default: %default]')
     parser.add_option('--no_labels', dest='labels', action='store_false', default=True,
-                      help='Do not output labels [default: False]')
+                      help='Do not output labels [default: %default]')
     parser.add_option('--stdout', dest='stdout',  default=False,
-                      help='Write output to stdout [default: False]', action='store_true')
-
+                      help='Write output to stdout [default: %default]', action='store_true')
+    parser.add_option('--output_type', dest='output_type',  type='choice', choices=['gml','lp','dimacs'], 
+                      help='Specifies the output type [default: %default]; possible values: gml, lp, dimacs', default='dimacs')
     opts, files = parser.parse_args(sys.argv[1:])
     if len(files) < 1:
         logging.error('No files given %s.' %','.join(files))
@@ -45,7 +46,7 @@ def options():
             logging.error('File "%s" is not a zipfile.' %path)
             exit(1)
     if not opts.output_file:
-        opts.output_file='%s.dimacs' %os.path.splitext(path)[0]
+        opts.output_file='%s.%s' %(os.path.splitext(path)[0],opts.output_type)
         logging.warning('No outputfile given (by option --output_file) using default output file "%s"' %opts.output_file)
     return opts, path
 
@@ -90,9 +91,19 @@ if __name__ == '__main__':
     places=info(path,'agency.txt', lambda x,y: agencies(x,y,agencies_mapping))
     places={e[0]: e[2] for e in places[1]}
     G=read_and_extract_graph(path,places)
-    from utils.graph_output import write_dimacs as write_graph
+
+    if opts.output_type == 'dimacs':
+        from utils.graph_output import write_dimacs as write_graph
+    elif opts.output_type == 'lp':
+        from utils.graph_output import write_lp as write_graph
+    elif opts.output_type == 'gml':
+        from utils.graph_output import write_gml as write_graph
+    else:
+        logging.error('Output type (%s) not implemented' %opts.output_type)
+
     output = cStringIO.StringIO()
     write_graph(G,symtab=opts.symtab,labels=opts.labels,output=output,gtfs_filename=os.path.basename(path))
+
     
     if not opts.stdout:
         logging.warning('Writing output to file')

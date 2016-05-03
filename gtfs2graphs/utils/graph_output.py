@@ -14,44 +14,106 @@
 # details.  You should have received a copy of the GNU General Public
 # License along with gtfs2graphs.  If not, see
 # <http://www.gnu.org/licenses/>.
+import logging
 import operator
 
-def write_gml(G,output='test.gml',gtfs_filename=''):
-    import networkx as nx
-    logging.warning('Writing gml file "%s"...' %output_file)
+#TODO: agency mapping and splitting
+
+def quote(x):
+    if isinstance(x,int):
+        return str(x)
+    else:
+        return '"%s"' %x
+
+def write_lp(G,output,symtab=True,labels=True,gtfs_filename=''):
+    def comment(x):
+        return '% ' + '%s'%x
+
+    num_edges=G.number_of_edges()
+
+    output.write(comment('original_input_file: %s\n' %gtfs_filename))
+    if symtab:
+        output.write(comment('%s \n' %('-'*80)))
+        output.write(comment('Symbol Table\n'))
+        for val,num_id in sorted(G.get_symtab().items(), key=operator.itemgetter(1)):
+            output.write('tab(%s,"%s").\n' %(num_id,val))
+    if labels:
+        output.write(comment('%s \n' %('-'*80)))
+        output.write(comment('Edge Labels\n'))
+        first = True
+        for edge,val in sorted(G.get_edge_labels().items(), key=operator.itemgetter(0)):
+            if first:
+                output.write(comment('edge_label(id,id,%s).\n' %(','.join(map(quote,val.keys())))))
+                first=False
+            output.write('edge_label(%i,%i,%s).\n' %(edge[0],edge[1],','.join(map(quote,val.values()))))
+
+        output.write(comment('%s \n' %('-'*80)))
+        output.write(comment('Vertex Labels\n'))
+        first=True
+        for vertex_id,val in sorted(G.get_node_labels().items(), key=operator.itemgetter(0)):
+            if first:
+                output.write(comment('vertex_label(id,%s).\n' %','.join(map(quote,val.keys()))))
+                first=False
+            output.write('vertex_label(%i,%s).\n' %(vertex_id,','.join(map(quote,val.values()))))
+
+        output.write(comment('%s \n' %('-'*80)))
+
+    for x,y in G:
+        output.write('edge(%s,%s).\n' %(x,y))
+    output.flush()
+    return output
+
+def write_gml(G,output,symtab=True,labels=True,gtfs_filename=''):
+    try:
+        import networkx as nx
+    except ImportError, e:
+        logging.error('Package missing %e')
+        logging.error('Try "pip install networkx"')
 
     GML = nx.DiGraph()
-    #G = nx.DiGraph()
-    #for trip in feed.trips.itervalues():
-    #    route_type = feed.routes[trip.route_id].route_type
-    #    agency = feed.routes[trip.route_id].agency_id.strip('-_') if feed.routes[trip.route_id].agency_id else None
-    #    add_stops2edges(G,trip.GetStopTimes(None), route_type, agency, area)
 
-    nx.write_gml(GML.to_undirected(), output_file)
+    for x,y in G:
+        GML.add_edge(x,y)
 
+    if symtab:
+        for val,num_id in sorted(G.get_symtab().items(), key=operator.itemgetter(1)):
+            GML.node[num_id]['label']=val
+            GML.node[num_id]['gen_id']=num_id
 
+    if labels:
+        for edge,val in sorted(G.get_edge_labels().items(), key=operator.itemgetter(0)):
+            for k,v in val.iteritems():
+                GML.edge[edge[0]][edge[1]][k]=v
 
-def write_dimacs(G,output,symtab=True,labels=True,gtfs_filename=''):
-    output.write('c original_input_file:%s\n' %gtfs_filename)
+        for vertex_id,val in sorted(G.get_node_labels().items(), key=operator.itemgetter(0)):
+            for k,v in val.iteritems():
+                GML.node[vertex_id][k]=v
+    nx.write_gml(GML.to_undirected(), output)
+    return output
+
+def write_dimacs(G,output,symtab=True,labels=True,gtfs_filename='',descriptor='tw'):
+    output.write('c Contains a public transit graph extracted from GTFS file\n')
+    output.write('c original_input_file: %s\n' %gtfs_filename)
     if symtab:
         output.write('c %s \n' %('-'*40))
         output.write('c Symbol Table\n')
         for val,num_id in sorted(G.get_symtab().items(), key=operator.itemgetter(1)):
-            output.write('c tab %s:::%s\n' %(num_id,val))
+            output.write('c tab %s | %s\n' %(num_id,val))
 
     if labels:
         output.write('c %s \n' %('-'*40))
         output.write('c Edge Labels\n')
         for edge,val in sorted(G.get_edge_labels().items(), key=operator.itemgetter(1)):
-            output.write('c edge %s:::%s\n' %(edge,val))
+            output.write('c edge %s | %s\n' %(edge,val))
 
         output.write('c %s \n' %('-'*40))
         output.write('c Vertex Labels\n')
         for vertex_id,val in sorted(G.get_node_labels().items(), key=operator.itemgetter(1)):
-            output.write('c node %s:::%s\n' %(vertex_id,val))
+            output.write('c node %s | %s\n' %(vertex_id,val))
         output.write('c %s \n' %('-'*40))
 
-    output.write('p edges %i %i\n' %(G.num_edges(),G.num_vertices()))
+    output.write('p %s %i %i' %(descriptor,G.num_edges(),G.num_vertices()))
     for x,y in G:
-        output.write('e %s %s\n' %(x,y))
+        output.write('\n')
+        output.write('e %s %s' %(x,y))
     output.flush()

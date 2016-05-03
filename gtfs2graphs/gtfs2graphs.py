@@ -3,12 +3,13 @@
 #Extract transport network graph from gtfs zip-file 
 
 from collections import defaultdict
+import cStringIO
 import logging
 import logging.config
 from itertools import izip
 from gtfs_info import *
 from helpers import setup_logging, read_config
-import networkx as nx
+from utils.graph import Graph
 import optparse
 import os
 import sys
@@ -22,6 +23,13 @@ def options():
     parser = optparse.OptionParser(usage=usage)
     parser.add_option('--output_file', dest='output_file', type='string',
                       help='Output file name [default: "./%file%.%type%"]', default=None)
+    parser.add_option('--no_symtab', dest='symtab', action='store_false', default=True,
+                      help='Do not output symtab [default: False]')
+    parser.add_option('--no_labels', dest='labels', action='store_false', default=True,
+                      help='Do not output labels [default: False]')
+    parser.add_option('--stdout', dest='stdout',  default=False,
+                      help='Write output to stdout [default: False]', action='store_true')
+
     opts, files = parser.parse_args(sys.argv[1:])
     if len(files) < 1:
         logging.error('No files given %s.' %','.join(files))
@@ -37,7 +45,6 @@ def options():
             logging.error('File "%s" is not a zipfile.' %path)
             exit(1)
     if not opts.output_file:
-        #TODO: set by type
         opts.output_file='%s.dimacs' %os.path.splitext(path)[0]
         logging.warning('No outputfile given (by option --output_file) using default output file "%s"' %opts.output_file)
     return opts, path
@@ -62,24 +69,19 @@ def add_stops2edges(G,stops, route_type, agency, area):
         except TypeError:
             weight = None
         e_area=area[agency] if agency else ''
-	label = {'weight': weight, 'route_type': route_type, 'agency': agency, 'area': e_area}
-        G.add_edge(x.stop.stop_name, y.stop.stop_name, label)
+        G.add_edge(x.stop.stop_name, y.stop.stop_name, weight=weight, route_type=route_type, agency=agency, area=e_area)
 
 def read_and_extract_graph(path,area):
     l=transitfeed.Loader(path)
     logging.warning('Reading feed "%s"' %path)
     feed = l.Load()
     logging.warning('Generating graph...')
-    G = nx.DiGraph()
+    G = Graph()
     for trip in feed.trips.itervalues():
         route_type = feed.routes[trip.route_id].route_type
         agency = feed.routes[trip.route_id].agency_id.strip('-_') if feed.routes[trip.route_id].agency_id else None
         add_stops2edges(G,trip.GetStopTimes(None), route_type, agency, area)
     return G
-        
-def write_gml(G,output_file='test.gml'):
-    logging.warning('Writing gml file "%s"...' %output_file)
-    nx.write_gml(G.to_undirected(), output_file)
     
 if __name__ == '__main__':
     opts,path=options()
@@ -89,4 +91,15 @@ if __name__ == '__main__':
     places=info(path,'agency.txt', lambda x,y: agencies(x,y,agencies_mapping))
     places={e[0]: e[2] for e in places[1]}
     G=read_and_extract_graph(path,places)
-    write_gml(G,opts.output_file)
+    from utils.graph_output import write_dimacs as write_graph
+    output = cStringIO.StringIO()
+    write_graph(G,symtab=opts.symtab,labels=opts.labels,output=output,gtfs_filename=os.path.basename(path))
+    
+    if not opts.stdout:
+        logging.warning('Writing output to file')
+        with open(opts.output_file, 'w') as f:
+            f.write(output.getvalue())
+            f.flush()
+        logging.warning('Output written to: %s' %opts.output_file)
+    else:
+        print output.getvalue()

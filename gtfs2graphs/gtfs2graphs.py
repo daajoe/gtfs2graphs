@@ -7,13 +7,13 @@ import cStringIO
 import logging
 import logging.config
 from itertools import izip
-from gtfs_info import *
-from helpers import setup_logging, read_config
-from utils.graph import Graph
 import optparse
 import os
 import sys
 import transitfeed
+from utils.gtfs_info import *
+from utils.helpers import setup_logging, read_config
+from utils.graph import Graph
 from zipfile import is_zipfile
 
 setup_logging()
@@ -86,7 +86,6 @@ def read_and_extract_graph(path,area):
 if __name__ == '__main__':
     opts,path=options()
     gtfs_info_config=read_config(filename='gtfs_info.py')
-    #TODO: error on first start
     agencies_mapping=gtfs_info_config['agencies']['mappings']
     places=info(path,'agency.txt', lambda x,y: agencies(x,y,agencies_mapping))
     places={e[0]: e[2] for e in places[1]}

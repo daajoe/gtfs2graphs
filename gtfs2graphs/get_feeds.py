@@ -1,8 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+#
+# Copyright 2016
+# Johannes K. Fichte, Vienna University of Technology, Austria
+#
+# gtfs2graphs is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.  gtfs2graphs is distributed in
+# the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE.  See the GNU General Public License for more
+# details.  You should have received a copy of the GNU General Public
+# License along with gtfs2graphs.  If not, see
+# <http://www.gnu.org/licenses/>.
 
-import codecs
 import collections
+import codecs
 import csv
 import eventlet
 from utils.helpers import *
@@ -11,6 +25,7 @@ import logging
 import json
 import os
 from progressbar import AnimatedMarker, Bar, BouncingBar, Counter, ETA, FileTransferSpeed, FormatLabel, Percentage, ProgressBar, ReverseBar, RotatingMarker, SimpleProgress, Timer
+import signal
 from StringIO import StringIO
 import sys
 import time
@@ -21,9 +36,6 @@ import zipfile
 
 logging.basicConfig(level=logging.INFO)
 termsize = map(lambda x: int(x), os.popen('stty size', 'r').read().split())
-
-#TODO: logging config
-#TODO: remove empty files and mark as empty
 config=read_config(__file__)
 
 class Feed(object):
@@ -187,7 +199,6 @@ class FeedList(object):
         self.__user_agent=user_agent
         self.__timeout=timeout
         self.__datafile=datafile
-        #TODO: try to read data file
         if os.path.isfile(datafile):
             with open(datafile, 'r') as d:
                 self.data=yaml.load(d)
@@ -250,13 +261,16 @@ class FeedList(object):
         except KeyboardInterrupt, e:
             logging.warning('CTRL+C hit. Stopping download. Marking download as unsuccessful.')
             return False, 'User abort.', None
-            
+
+    def dump_yaml(self):
+        with open(self.__datafile,'w') as outfile:
+            yaml.dump(self.data,outfile, allow_unicode=True)
+
                 
     def save_all_feeds(self):
         f=self.get_feeds()
         widgets = ['Processed: ', Counter(), ' of %i feeds (' %len(f), Timer(), ')']
         pbar = ProgressBar(widgets=widgets,maxval=len(f)-1)
-        processed = self.data
         #f[1:]
         for feed in pbar(f[1:]):
             #check whether feed is in datafile
@@ -268,46 +282,32 @@ class FeedList(object):
                 logging.warning('Removing incomplete file.')
                 if os.path.exists(filename):
                     os.remove(filename)
-            processed[feed['api_id']] = {'successful': successful, 'msg': msg, 'last_modified': last_modified, 'filename': filename}
-            with open(self.__datafile,'w') as outfile:
-                yaml.dump(processed,outfile, allow_unicode=True)
+            self.data[feed['api_id']] = {'successful': successful, 'msg': msg, 'last_modified': last_modified, 'filename': filename}
+            self.dump_yaml()
 
-import httpretty
-
-httpretty.enable()
-def request_callback(request, uri, headers):
-    with open('test_%s.json' %request.querystring['page'][0]) as f:
-        data = json.load(f)
-        return (200,headers, json.dumps(data))
-
-httpretty.register_uri(httpretty.GET, config['feed_url'],body=request_callback,content_type='text/json')
-                       # responses=[httpretty.Response(content_type='text/json',body='',status=200),
-                       #            httpretty.Response(content_type='text/json',body='',status=200)])
-#httpretty.disable()
-
-#TODO: test
-#TODO: write 
+                
+# import httpretty
+# httpretty.enable()
+# def request_callback(request, uri, headers):
+#     with open('test_%s.json' %request.querystring['page'][0]) as f:
+#         data = json.load(f)
+#         return (200,headers, json.dumps(data))
+# httpretty.register_uri(httpretty.GET, config['feed_url'],body=request_callback,content_type='text/json')
+#                        # responses=[httpretty.Response(content_type='text/json',body='',status=200),
+#                        #            httpretty.Response(content_type='text/json',body='',status=200)])
+# #httpretty.disable()
 
 o=FeedList(key=config['key'],url=config['feed_url'],path=config['feed_path'],overwrite=True,timeout=config['timeout'],user_agent=config['user_agent'])
 #o.save_feed('my_feed',"http://data.cabq.gov/transit/gtfs/google_transit.zip",'test.zip')
+
+def signal_handler(signum, frame):
+    logging.error('Signal %i received' %signum)
+    logging.error('Writing progress to file')
+    o.dump_yaml()
+    logging.error('Exiting...')
+    exit(1)
+    
+signal.signal(signal.SIGQUIT, signal_handler)
+
 o.save_all_feeds()
-
-#get feed list                
-#feedlist2csv(L)
-
-#headers={"If-Modified-Since": timestamp}
-#304: not modified
-
-#save feed list
-
-#update feed list
-
-#convert feed
-#update feed list
-#exit(1)
-
-
-# Running: Example 9
-# Working: |
-
 

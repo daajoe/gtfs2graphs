@@ -108,16 +108,19 @@ def write_dimacs(G, output, symtab=True, labels=True, gtfs_filename='', descript
     if labels:
         output.write('c %s \n' % ('-' * 40))
         output.write('c Edge Labels\n')
-        for edge, val in sorted(G.get_edge_labels().items(), key=operator.itemgetter(1)):
+        for edge, val in sorted(G.get_edge_labels().items(), key=operator.itemgetter(0)):
             output.write('c edge %s | %s\n' % (edge, val))
 
         output.write('c %s \n' % ('-' * 40))
+        output.flush()
+        
         output.write('c Vertex Labels\n')
-        for vertex_id, val in sorted(G.get_node_labels().items(), key=operator.itemgetter(1)):
+        for vertex_id, val in sorted(G.get_node_labels().items(), key=operator.itemgetter(0)):
             output.write('c node %s | %s\n' % (vertex_id, val))
+        output.flush()
         output.write('c %s \n' % ('-' * 40))
 
-    output.write('p %s %i %i' % (descriptor, G.num_edges(), G.num_vertices()))
+    output.write('p %s %i %i\n' % (descriptor, G.num_edges(), G.num_vertices()))
     for x, y in G:
         output.write('e %s %s\n' % (x, y))
     output.flush()

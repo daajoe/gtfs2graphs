@@ -19,6 +19,7 @@ class Graph(object):
     def __init__(self):
         self.__edges = set()
         self.__tab = dict()
+        self.__id_tab = dict()
         self.__node_label = dict()
         self.__edge_label = dict()
 
@@ -40,6 +41,7 @@ class Graph(object):
             return self.__tab[x]
         else:
             self.__tab[x] = len(self.__tab) + 1
+            self.__id_tab[self.__tab[x]] = x
             return self.__tab[x]
 
     def edge_iter(self):
@@ -62,6 +64,9 @@ class Graph(object):
 
     def get_node_labels(self):
         return self.__node_label
+
+    def get_node_name(self, x):
+        return self.__id_tab[x]
 
     def number_of_edges(self):
         return len(self.__edges)

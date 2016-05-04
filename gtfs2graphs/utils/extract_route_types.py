@@ -46,7 +46,11 @@ def extract(G, M):
         for key in M.iterkeys():
             if route_type in key:
                 for t in M[key]:
-                    d[t].add_edge(v, w, **G[(v, w)])
+                    v_name, w_name = G.get_node_name(v), G.get_node_name(w)
+                    d[t].add_node(v_name, **G[v])
+                    d[t].add_node(w_name, **G[w])
+                    d[t].add_edge(v_name, w_name, **G[(v, w)])
+                    #exit(1)
     return d
 
 

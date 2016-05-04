@@ -37,7 +37,7 @@ def options():
     usage = 'usage: %prog [options] file'
     parser = optparse.OptionParser(usage=usage)
     parser.add_option('--output_file', dest='output_file', type='string',
-                      help='Output file name [default: "./%file%.%type%"]', default=None)
+                      help='Output file name [default: "./%type%/%file%.%type%"]', default=None)
     parser.add_option('--no_symtab', dest='symtab', action='store_false', default=True,
                       help='Do not output symtab [default: %default]')
     parser.add_option('--no_labels', dest='labels', action='store_false', default=True,
@@ -48,9 +48,9 @@ def options():
                       help='Do not provide additional transport type specific graphs (bus, metro, bus+metro,...). ' +
                            'For route types configuration see: "conf/extract_route_types_conf.yaml".' +
                            'For route types see: "conf/route_types.csv" and "conf/route_types_extended.csv".')
-    parser.add_option('--output_type', dest='output_type', type='choice', choices=['gml', 'lp', 'dimacs'],
-                      help='Specifies the output type [default: %default]; allowed values: gml, lp, dimacs',
-                      default='dimacs')
+    parser.add_option('--output_type', dest='output_type', type='choice', choices=['gml', 'lp', 'gr'],
+                      help='Specifies the output type [default: %default]; allowed values: gml, lp, gr',
+                      default='gr')
     opts, files = parser.parse_args(sys.argv[1:])
     if len(files) < 1:
         logging.error('No files given %s.' % ','.join(files))
@@ -66,7 +66,10 @@ def options():
             logging.error('File "%s" is not a zipfile.' % path)
             exit(1)
     if not opts.output_file:
-        opts.output_file = '%s.%s' % (os.path.splitext(path)[0], opts.output_type)
+        opts.output_file = '%s/%s/%s.%s' % (os.path.dirname(path), opts.output_type, os.path.basename(path), opts.output_type)
+        directory = os.path.dirname(opts.output_file)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
         logging.warning(
                 'No outputfile given (by option --output_file) using default output file "%s"' % opts.output_file)
     return opts, path
@@ -111,7 +114,7 @@ def read_and_extract_graph(path, area):
 
 def save_graph(G, output_file, stdout, gtfs_filename, output_type, symtab, labels):
     output = cStringIO.StringIO()
-    if output_type == 'dimacs':
+    if output_type == 'gr':
         from utils.graph_output import write_dimacs as write_graph
         write_graph(G, symtab=symtab, labels=labels, output=output, gtfs_filename=gtfs_filename)
     elif output_type == 'lp':
@@ -145,9 +148,9 @@ if __name__ == '__main__':
 
     D = extract_route_types(G)
     for k, g in D.iteritems():
-        print opts.output_file
         output_filename, output_file_extension = os.path.splitext(opts.output_file)
         output_filename = '%s_%s%s' % (output_filename, k, output_file_extension)
         filename = opts.output_file
         save_graph(g, output_file=output_filename, stdout=opts.stdout, gtfs_filename=os.path.basename(path),
                    output_type=opts.output_type, symtab=opts.symtab, labels=opts.labels)
+        exit(1)

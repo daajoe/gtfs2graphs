@@ -17,6 +17,7 @@
 
 import collections
 import csv
+from httplib import BadStatusLine
 import json
 import logging
 import os
@@ -257,6 +258,10 @@ class FeedList(object):
                         pass
                     logging.warning('Connection error for feed "%s" (url "%s"). Error was: %s', feed_name, feed_url, e)
                     return False, 'Connection error', None
+                except BadStatusLine, e:
+                    logging.warning('Connection error for feed "%s" (url "%s"). Unknown status code. Error was: %s', feed_name, feed_url, e)
+                    return False, 'Connection error', None
+
                 statinfo = os.stat(filename)
                 if statinfo.st_size == 0:
                     logging.warning('Empty file downloaded for feed "%s" (url "%s").', feed_name, feed_url)

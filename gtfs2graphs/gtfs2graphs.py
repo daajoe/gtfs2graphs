@@ -48,8 +48,8 @@ def options():
                       help='Do not provide additional transport type specific graphs (bus, metro, bus+metro,...). ' +
                            'For route types configuration see: "conf/extract_route_types_conf.yaml".' +
                            'For route types see: "conf/route_types.csv" and "conf/route_types_extended.csv".')
-    parser.add_option('--output_type', dest='output_type', type='choice', choices=['gml', 'lp', 'gr'],
-                      help='Specifies the output type [default: %default]; allowed values: gml, lp, gr',
+    parser.add_option('--output_type', dest='output_type', type='choice', choices=['gml', 'lp', 'gr', 'dimacs'],
+                      help='Specifies the output type [default: %default]; allowed values: gml, lp, gr, dimacs',
                       default='gr')
     opts, files = parser.parse_args(sys.argv[1:])
     if len(files) < 1:
@@ -115,6 +115,9 @@ def read_and_extract_graph(path, area):
 def save_graph(G, output_file, stdout, gtfs_filename, output_type, symtab, labels):
     output = cStringIO.StringIO()
     if output_type == 'gr':
+        from utils.graph_output import write_gr as write_graph
+        write_graph(G, symtab=symtab, labels=labels, output=output, gtfs_filename=gtfs_filename)
+    elif output_type == 'dimacs':
         from utils.graph_output import write_dimacs as write_graph
         write_graph(G, symtab=symtab, labels=labels, output=output, gtfs_filename=gtfs_filename)
     elif output_type == 'lp':

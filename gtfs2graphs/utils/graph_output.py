@@ -96,7 +96,7 @@ def write_gml(G, output, symtab=True, labels=True, gtfs_filename=''):
     return output
 
 
-def write_dimacs(G, output, symtab=True, labels=True, gtfs_filename='', descriptor='tw'):
+def write_dimacs_like(G, output, symtab=True, labels=True, gtfs_filename='', descriptor='', edge_char='e '):
     output.write('c Contains a public transit graph extracted from GTFS file\n')
     output.write('c original_input_file: %s\n' % gtfs_filename)
     if symtab:
@@ -122,5 +122,12 @@ def write_dimacs(G, output, symtab=True, labels=True, gtfs_filename='', descript
 
     output.write('p %s %i %i\n' % (descriptor, G.num_edges(), G.num_vertices()))
     for x, y in G:
-        output.write('e %s %s\n' % (x, y))
+        output.write('%s%s %s\n' % (edge_char,x, y))
     output.flush()
+    return output
+
+def write_dimacs(G, output, symtab=True, labels=True, gtfs_filename=''):
+    return write_dimacs_like(G, output, symtab=True, labels=True, gtfs_filename='', descriptor='edge', edge_char='e ')
+
+def write_gr(G, output, symtab=True, labels=True, gtfs_filename=''):
+    return write_dimacs_like(G, output, symtab=True, labels=True, gtfs_filename='', descriptor='tw', edge_char='')

@@ -5,7 +5,7 @@ import codecs
 import collections
 import csv
 import eventlet
-from helpers import *
+from utils.helpers import *
 from itertools import chain, izip
 import logging
 import json
@@ -24,7 +24,7 @@ termsize = map(lambda x: int(x), os.popen('stty size', 'r').read().split())
 
 #TODO: logging config
 #TODO: remove empty files and mark as empty
-config=read_config()
+config=read_config(__file__)
 
 class Feed(object):
     @staticmethod
@@ -174,7 +174,8 @@ class TransitFeedAPI(object):
         L=self._feeds2list()
         return self._feedlist2csv(L,stream)
 
-from normalize_gtfs_archive import FeedArchive
+from utils.normalize_gtfs_archive import FeedArchive
+
 class FeedList(object):
     def __init__(self,key,url,path='./feeds',overwrite=False,datafile='./conf/data.yaml',timeout=10,user_agent='Mozilla/5.0 (Linux i686)'):
         self.__api=TransitFeedAPI(key=key, limit=100,feed_url=url)
@@ -230,6 +231,10 @@ class FeedList(object):
                         pass
                     logging.warning('Connection error for feed "%s" (url "%s"). Error was: %s', feed_name, feed_url, e)
                     return False, 'Connection error', None
+                statinfo = os.stat(filename)
+                if statinfo.st_size == 0:
+                    logging.warning('Empty file downloaded for feed "%s" (url "%s").', feed_name, feed_url)
+                    return False, 'Empty file.', None
 
                 #normalize feed
                 arch=FeedArchive(filename)

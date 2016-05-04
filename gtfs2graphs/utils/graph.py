@@ -17,35 +17,34 @@
 
 class Graph(object):
     def __init__(self):
-        self.__edges=set()
-        self.__tab=dict()
-        self.__node_label=dict()
-        self.__edge_label=dict()
+        self.__edges = set()
+        self.__tab = dict()
+        self.__node_label = dict()
+        self.__edge_label = dict()
 
-    def add_node(self,x, **label):
-        v=self.__vertex_id(x)
+    def add_node(self, x, **label):
+        v = self.__vertex_id(x)
         if label:
-            self.__node_label[v]=label
+            self.__node_label[v] = label
         return v
 
-    def add_edge(self,x,y,**label):
-        v1,v2=self.__vertex_id(x),self.__vertex_id(y)
-        self.__edges.add((v1,v2))
+    def add_edge(self, x, y, **label):
+        v1, v2 = self.__vertex_id(x), self.__vertex_id(y)
+        self.__edges.add((v1, v2))
         if label:
-            self.__edge_label[(v1,v2)]=label
-        return (v1,v2)
+            self.__edge_label[(v1, v2)] = label
+        return (v1, v2)
 
-    def __vertex_id(self,x):
+    def __vertex_id(self, x):
         if self.__tab.has_key(x):
             return self.__tab[x]
         else:
-            self.__tab[x]=len(self.__tab)+1
+            self.__tab[x] = len(self.__tab) + 1
             return self.__tab[x]
 
     def edge_iter(self):
         return iter(self.__edges)
 
-    
     def __iter__(self):
         return self.edge_iter()
 
@@ -54,7 +53,7 @@ class Graph(object):
 
     def num_vertices(self):
         return len(self.__tab)
-    
+
     def get_symtab(self):
         return self.__tab
 
@@ -67,9 +66,8 @@ class Graph(object):
     def number_of_edges(self):
         return len(self.__edges)
 
-    def __getitem__(self,x):
-        if isinstance(x,tuple):
+    def __getitem__(self, x):
+        if isinstance(x, tuple):
             return self.get_edge_labels()[x]
         else:
             return self.get_node_labels()[x]
-

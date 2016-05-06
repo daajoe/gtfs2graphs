@@ -156,4 +156,3 @@ if __name__ == '__main__':
         filename = opts.output_file
         save_graph(g, output_file=output_filename, stdout=opts.stdout, gtfs_filename=os.path.basename(path),
                    output_type=opts.output_type, symtab=opts.symtab, labels=opts.labels)
-        exit(1)

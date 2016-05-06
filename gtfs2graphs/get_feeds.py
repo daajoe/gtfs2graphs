@@ -21,7 +21,9 @@ from httplib import BadStatusLine
 import json
 import logging
 import os
+import shutil
 import signal
+import tempfile
 import time
 import urllib
 import urllib2
@@ -223,7 +225,7 @@ class FeedList(object):
     def get_feeds_csv(self):
         return self.__api.get_all_feeds_as_csv().getvalue()
 
-    def save_feed(self, feed_name, feed_url, filename, if_modified_since):
+    def save_feed(self, feed_name, feed_url, filename, tmpfile, if_modified_since):
         filename = filename.encode('ascii', errors='ignore')
         if not feed_url or feed_url == 'NA':
             logging.error('URL missing for feed "%s" (url "%s").', feed_name, feed_url)
@@ -234,7 +236,8 @@ class FeedList(object):
             return True, 'File exists.', None
         try:
             # download feed
-            with open(filename, 'wb') as stream_out:
+            logging.debug('Saving download to tmpfile="%s"' %tmpfile)
+            with open(tmpfile, 'wb') as stream_out:
                 # timestamp=time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(time.time()))
                 try:
                     last_modified = Feed.download_feed(feed_name, feed_url, stream_out, os.path.basename(filename),
@@ -258,26 +261,29 @@ class FeedList(object):
                         pass
                     logging.warning('Connection error for feed "%s" (url "%s"). Error was: %s', feed_name, feed_url, e)
                     return False, 'Connection error', None
-                except BadStatusLine, e:
+                except (BadStatusLine,socket.error), e:
                     logging.warning('Connection error for feed "%s" (url "%s"). Unknown status code. Error was: %s', feed_name, feed_url, e)
                     return False, 'Connection error', None
 
-                statinfo = os.stat(filename)
+                statinfo = os.stat(tmpfile)
                 if statinfo.st_size == 0:
                     logging.warning('Empty file downloaded for feed "%s" (url "%s").', feed_name, feed_url)
                     return False, 'Empty file.', None
 
-                # normalize feed
-                arch = FeedArchive(filename)
-                try:
-                    arch.normalize(replace=True)
-                except zipfile.BadZipfile, e:
-                    logging.warning('Badzip for feed "%s" (url "%s") downloaded.', feed_name, feed_url)
-                    return False, 'BadZip', last_modified
-                except ValueError, e:
-                    logging.warning('Missing file in "%s" (url "%s"). Error Message was:', feed_name, feed_url, e)
-                    return False, 'Missing file.', last_modified
-                return True, 'OK', last_modified
+            logging.debug('Renaming tmpfile="%s" to "%s"' %(tmpfile,filename))
+            shutil.move(tmpfile, filename)
+            logging.debug('Renaming done.')
+            # normalize feed
+            arch = FeedArchive(filename)
+            try:
+                arch.normalize(replace=True)
+            except zipfile.BadZipfile, e:
+                logging.warning('Badzip for feed "%s" (url "%s") downloaded.', feed_name, feed_url)
+                return False, 'BadZip', last_modified
+            except ValueError, e:
+                logging.warning('Missing file in "%s" (url "%s"). Error Message was:', feed_name, feed_url, e)
+                return False, 'Missing file.', last_modified
+            return True, 'OK', last_modified
         except KeyboardInterrupt, e:
             logging.warning('CTRL+C hit. Stopping download. Marking download as unsuccessful.')
             return False, 'User abort.', None
@@ -290,18 +296,18 @@ class FeedList(object):
         f = self.get_feeds()
         widgets = ['Processed: ', Counter(), ' of %i feeds (' % len(f), Timer(), ')']
         pbar = ProgressBar(widgets=widgets, maxval=len(f) - 1)
-        # f[1:]
-        for feed in pbar(f[1:]):
+        #f[1:]
+        for feed in pbar(f[143:150]):
             # check whether feed is in datafile
             d = self.data.get(feed['api_id'])
             if_modified_since = d.get('last_modified') if d and d.get('successful') else 'Thu, 01 Jan 1970 00:00:00 GMT'
             filename = '%s/%s.zip' % (
             self.__path, feed['name'].replace(' ', '_').replace('/', '-').encode('ascii', errors='ignore'))
-            successful, msg, last_modified = self.save_feed(feed['name'], feed['url'], filename, if_modified_since)
-            if not successful:
-                logging.warning('Removing incomplete file.')
-                if os.path.exists(filename):
-                    os.remove(filename)
+            tmpfile=tempfile.mkstemp()[1]
+            successful, msg, last_modified = self.save_feed(feed['name'], feed['url'], filename, tmpfile, if_modified_since)
+            if os.path.exists(tmpfile):
+                logging.warning('Removing incomplete temporary file.')
+                os.remove(tmpfile)
             self.data[feed['api_id']] = {'successful': successful, 'msg': msg, 'last_modified': last_modified,
                                          'filename': filename}
             self.dump_yaml()

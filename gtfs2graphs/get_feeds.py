@@ -296,8 +296,7 @@ class FeedList(object):
         f = self.get_feeds()
         widgets = ['Processed: ', Counter(), ' of %i feeds (' % len(f), Timer(), ')']
         pbar = ProgressBar(widgets=widgets, maxval=len(f) - 1)
-        #f[1:]
-        for feed in pbar(f[143:150]):
+        for feed in pbar(f[1:]):
             # check whether feed is in datafile
             d = self.data.get(feed['api_id'])
             if_modified_since = d.get('last_modified') if d and d.get('successful') else 'Thu, 01 Jan 1970 00:00:00 GMT'

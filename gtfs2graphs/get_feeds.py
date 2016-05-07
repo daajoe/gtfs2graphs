@@ -144,13 +144,6 @@ class TransitFeedAPI(object):
         try:
             results = list()
             results_json, _, num_pages, timestamp = self.get_feeds_from_page(page=1)
-            #TODO:
-            #print results_json
-            #print 'here'
-            results.sort()
-            results.extend(results_json)
-            return results,timestamp
-
             results.extend(results_json)
             for i in xrange(2, num_pages + 1):
                 results.extend(self.get_feeds_from_page(page=i)[0])
@@ -190,7 +183,6 @@ class TransitFeedAPI(object):
         # initialize with header
         ret = [mapping.keys() + ['downloaded']]
         # put feeds into list
-        # TODO: error handling for some items
         for feed in chain_list(feeds):
             ret.append(self._dataset(feed, mapping, timestamp, self.__feed_download_url))
         return ret

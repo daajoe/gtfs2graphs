@@ -23,6 +23,7 @@ import logging
 import os
 import shutil
 import signal
+import socket
 import tempfile
 import time
 import urllib
@@ -111,7 +112,11 @@ class TransitFeedAPI(object):
         url = '%s?%s' % (self.__feed_url, urllib.urlencode(feed_args))
 
         request = urllib2.Request(url, headers={'User-agent': self.__user_agent})
-        response = urllib2.urlopen(request)
+        try:
+            response = urllib2.urlopen(request)
+        except urllib2.URLError, e:
+            logging.critical('Cannot connect to transit feed api. Error was "%s"' %e)
+            exit(1)
 
         if response.getcode() != 200:
             logging.error('API query was unsucessful')
@@ -170,14 +175,10 @@ class TransitFeedAPI(object):
         return d
 
     @staticmethod
-    def _dataset(feed, m, timestamp):
+    def _dataset(feed, m, timestamp, feed_url):
         ret = [nested_get(feed, v) for v in m.itervalues()]
-        #TODO: next
-        print self._feed_download_url
-        print ret[0]
-        print ret
-        #https://api.transitfeeds.com/v1/getLatestFeedVersion?key=5f0e0274-8629-49b4-86b5-a4d90258f9d9&feed=ac-transit/121
-        exit(1)
+        #fix download url to TransitFeed (not the data provider)
+        ret[2]=feed_url %ret[0]
         ret.append(timestamp)
         return ret
 
@@ -191,7 +192,7 @@ class TransitFeedAPI(object):
         # put feeds into list
         # TODO: error handling for some items
         for feed in chain_list(feeds):
-            ret.append(self._dataset(feed, mapping, timestamp))
+            ret.append(self._dataset(feed, mapping, timestamp, self.__feed_download_url))
         return ret
 
     def get_all_feeds_dict(self):
@@ -338,11 +339,11 @@ class FeedList(object):
 #                        #            httpretty.Response(content_type='text/json',body='',status=200)])
 # #httpretty.disable()
 
-o = FeedList(key=config['key'], url=config['feed_url'], feed_download_url=config['get_feed_url'], path=config['feed_path'], 
+o = FeedList(key=config['key'], url=config['feed_url'], feed_download_url=config['get_feed_url'] %(config['key'],'%s'), path=config['feed_path'], 
              overwrite=True, timeout=config['timeout'], user_agent=config['user_agent'])
 
 
-# o.save_feed('my_feed',"http://data.cabq.gov/transit/gtfs/google_transit.zip",'test.zip')
+#o.save_feed('my_feed',"http://data.cabq.gov/transit/gtfs/google_transit.zip",'test.zip')
 
 def signal_handler(signum, frame):
     logging.error('Signal %i received' % signum)

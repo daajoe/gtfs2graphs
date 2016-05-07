@@ -99,11 +99,12 @@ class Feed(object):
 
 
 class TransitFeedAPI(object):
-    def __init__(self, key, limit, feed_url, user_agent='Mozilla/5.0 (Linux i686)'):
+    def __init__(self, key, limit, feed_url, feed_download_url, user_agent='Mozilla/5.0 (Linux i686)'):
         self.__key = key
         self.__limit = limit
         self.__feed_url = feed_url
         self.__user_agent = user_agent
+        self.__feed_download_url = feed_download_url
 
     def get_feeds_from_page(self, page=1):
         feed_args = {'key': self.__key, 'page': page, 'limit': self.__limit}
@@ -138,6 +139,13 @@ class TransitFeedAPI(object):
         try:
             results = list()
             results_json, _, num_pages, timestamp = self.get_feeds_from_page(page=1)
+            #TODO:
+            #print results_json
+            #print 'here'
+            results.sort()
+            results.extend(results_json)
+            return results,timestamp
+
             results.extend(results_json)
             for i in xrange(2, num_pages + 1):
                 results.extend(self.get_feeds_from_page(page=i)[0])
@@ -164,6 +172,12 @@ class TransitFeedAPI(object):
     @staticmethod
     def _dataset(feed, m, timestamp):
         ret = [nested_get(feed, v) for v in m.itervalues()]
+        #TODO: next
+        print self._feed_download_url
+        print ret[0]
+        print ret
+        #https://api.transitfeeds.com/v1/getLatestFeedVersion?key=5f0e0274-8629-49b4-86b5-a4d90258f9d9&feed=ac-transit/121
+        exit(1)
         ret.append(timestamp)
         return ret
 
@@ -196,15 +210,15 @@ class TransitFeedAPI(object):
     def get_all_feeds_as_csv(self, stream=StringIO()):
         L = self._feeds2list()
         return self._feedlist2csv(L, stream)
-
+        
 
 from utils.normalize_gtfs_archive import FeedArchive
 
 
 class FeedList(object):
-    def __init__(self, key, url, path='./feeds', overwrite=False, datafile='./conf/data.yaml', timeout=10,
+    def __init__(self, key, url, feed_download_url, path='./feeds', overwrite=False, datafile='./conf/data.yaml', timeout=10,
                  user_agent='Mozilla/5.0 (Linux i686)'):
-        self.__api = TransitFeedAPI(key=key, limit=100, feed_url=url)
+        self.__api = TransitFeedAPI(key=key, limit=100, feed_url=url, feed_download_url=feed_download_url)
         self.__overwrite = overwrite
         path = os.path.realpath(path)
         if not os.path.exists(path):
@@ -218,6 +232,7 @@ class FeedList(object):
                 self.data = yaml.load(d)
         else:
             self.data = dict()
+        self.__feed_download_url = feed_download_url
 
     def get_feeds(self):
         return self.__api.get_all_feeds_dict()
@@ -323,8 +338,8 @@ class FeedList(object):
 #                        #            httpretty.Response(content_type='text/json',body='',status=200)])
 # #httpretty.disable()
 
-o = FeedList(key=config['key'], url=config['feed_url'], path=config['feed_path'], overwrite=True,
-             timeout=config['timeout'], user_agent=config['user_agent'])
+o = FeedList(key=config['key'], url=config['feed_url'], feed_download_url=config['get_feed_url'], path=config['feed_path'], 
+             overwrite=True, timeout=config['timeout'], user_agent=config['user_agent'])
 
 
 # o.save_feed('my_feed',"http://data.cabq.gov/transit/gtfs/google_transit.zip",'test.zip')

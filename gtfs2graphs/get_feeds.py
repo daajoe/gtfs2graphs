@@ -38,9 +38,9 @@ import eventlet
 import yaml
 from progressbar import Bar, Counter, ETA, FileTransferSpeed, Percentage, ProgressBar, RotatingMarker, Timer
 
-from utils.helpers import read_config, chain_list, nested_get
+from utils.helpers import read_config, chain_list, nested_get, setup_logging
 
-#logging.basicConfig(level=logging.INFO)
+setup_logging()
 termsize = map(lambda x: int(x), os.popen('stty size', 'r').read().split())
 config = read_config(__file__)
 

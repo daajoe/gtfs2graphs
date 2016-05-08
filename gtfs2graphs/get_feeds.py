@@ -18,6 +18,7 @@
 import collections
 import csv
 from httplib import BadStatusLine
+from itertools import ifilter
 import json
 import logging
 import os
@@ -59,7 +60,7 @@ class Feed(object):
         eventlet.monkey_patch()
         with eventlet.Timeout(timeout):
             accepted = 'application/zip', 'application/x-zip-compressed'
-            request = urllib2.Request(feed_url, headers={'User-agent': user_agent, 'Accept': ','.join(accepted),
+            request = urllib2.Request(feed_url, headers={'User-agent': user_agent, #'Accept': ','.join(accepted),
                                                          'If-Modified-Since': timestamp})
             response = urllib2.urlopen(request)
 
@@ -67,6 +68,7 @@ class Feed(object):
             logging.error('Wrong Content Type for url %s', feed_url)
             raise TypeError('Wrong Content Type for feed "%s" (url: "%s"). Expected type "%s" was %s' % (
             feed_name, feed_url, ','.join(accepted), response.info().get('content-type')))
+
         content_length = int(response.info().get('content-length'))
         last_modified = response.info().get('last-modified')
 
@@ -100,12 +102,13 @@ class Feed(object):
 
 
 class TransitFeedAPI(object):
-    def __init__(self, key, limit, feed_url, feed_download_url, user_agent='Mozilla/5.0 (Linux i686)'):
+    def __init__(self, key, limit, feed_url, feed_download_url, user_agent='Mozilla/5.0 (Linux i686)', blacklist=None):
         self.__key = key
         self.__limit = limit
         self.__feed_url = feed_url
         self.__user_agent = user_agent
         self.__feed_download_url = feed_download_url
+        self.__blacklist = blacklist
 
     def get_feeds_from_page(self, page=1):
         feed_args = {'key': self.__key, 'page': page, 'limit': self.__limit}
@@ -148,6 +151,8 @@ class TransitFeedAPI(object):
             for i in xrange(2, num_pages + 1):
                 results.extend(self.get_feeds_from_page(page=i)[0])
             results.sort()
+            #filter by blacklist
+            results = filter(lambda x: not any(e in x['t'] for e in self.__blacklist), results)
             return results, timestamp
         except urllib2.HTTPError, e:
             timestamp = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(time.time()))
@@ -171,7 +176,7 @@ class TransitFeedAPI(object):
     def _dataset(feed, m, timestamp, feed_url):
         ret = [nested_get(feed, v) for v in m.itervalues()]
         #fix download url to TransitFeed (not the data provider)
-        ret[2]=feed_url %ret[0]
+        ret[2]=feed_url %urllib.quote_plus(ret[0])
         ret.append(timestamp)
         return ret
 
@@ -210,8 +215,8 @@ from utils.normalize_gtfs_archive import FeedArchive
 
 class FeedList(object):
     def __init__(self, key, url, feed_download_url, path='./feeds', overwrite=False, datafile='./conf/data.yaml', timeout=10,
-                 user_agent='Mozilla/5.0 (Linux i686)'):
-        self.__api = TransitFeedAPI(key=key, limit=100, feed_url=url, feed_download_url=feed_download_url)
+                 user_agent='Mozilla/5.0 (Linux i686)', blacklist=None):
+        self.__api = TransitFeedAPI(key=key, limit=100, feed_url=url, feed_download_url=feed_download_url, blacklist=blacklist)
         self.__overwrite = overwrite
         path = os.path.realpath(path)
         if not os.path.exists(path):
@@ -260,11 +265,15 @@ class FeedList(object):
                 except urllib2.URLError, e:
                     try:
                         if e.code == 304:
-                            print filename
                             logging.info('File "%s" for feed "%s" (url "%s") is up-to-date.',
                                          os.path.basename(filename), feed_name, feed_url)
                             return True, 'File "%s" for feed "%s" (url "%s") is up-to-date.' % (
-                            filename, feed_name, feed_url), if_modified_since
+                                filename, feed_name, feed_url), if_modified_since
+                        if e.code == 500:
+                            logging.info('No file (e.g. only developer API) for feed "%s" (url "%s").',
+                                         os.path.basename(filename), feed_url)
+                            return False, 'No file "%s" for feed "%s" (url "%s").' %(
+                                os.path.basename(filename), feed_name, feed_url), None
                     except AttributeError, e:
                         pass
                     logging.warning('Connection error for feed "%s" (url "%s"). Error was: %s', feed_name, feed_url, e)
@@ -331,8 +340,12 @@ class FeedList(object):
 #                        #            httpretty.Response(content_type='text/json',body='',status=200)])
 # #httpretty.disable()
 
-o = FeedList(key=config['key'], url=config['feed_url'], feed_download_url=config['get_feed_url'] %(config['key'],'%s'), path=config['feed_path'], 
-             overwrite=True, timeout=config['timeout'], user_agent=config['user_agent'])
+feed_download_url = config['get_feed_url']
+
+feed_download_url = feed_download_url.replace('%key',config['key'])
+
+o = FeedList(key=config['key'], url=config['feed_url'], feed_download_url=feed_download_url, path=config['feed_path'], 
+             overwrite=True, timeout=config['timeout'], user_agent=config['user_agent'], blacklist=config['blacklist'])
 
 
 #o.save_feed('my_feed',"http://data.cabq.gov/transit/gtfs/google_transit.zip",'test.zip')

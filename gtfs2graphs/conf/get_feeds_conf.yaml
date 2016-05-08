@@ -1,7 +1,20 @@
 feed_url: 'http://api.transitfeeds.com/v1/getFeeds'
 version_url: 'http://api.transitfeeds.com/v1/getLatestFeedVersion'
-get_feed_url: 'https://api.transitfeeds.com/v1/getLatestFeedVersion?key=%s&feed=%s'
+get_feed_url: 'https://api.transitfeeds.com/v1/getLatestFeedVersion?key=%key&feed=%s'
+#get_feed_url: 'https://transitfeeds.com/p/%s/latest/download'
 key: 
 user_agent: 'Mozilla/5.0 (Linux i686)'
 feed_path: './feeds'
 timeout: 10
+#list of keywords where we usually only expect realtime data 
+#(those feeds mostly only available via a specific transport agency API)
+blacklist:
+  - "Vehicle Positions"
+  - "Twitter"
+  - "Transit Alerts"
+  - "Trip Updates"
+  - "Alerts"
+  - "Real-Time"
+  - "News"
+  - "App Center"
+  - "Vehicle Locations"

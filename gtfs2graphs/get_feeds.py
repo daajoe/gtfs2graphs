@@ -29,6 +29,7 @@ import tempfile
 import time
 import urllib
 import urllib2
+import urlparse
 import zipfile
 from StringIO import StringIO
 from itertools import izip
@@ -39,7 +40,7 @@ from progressbar import Bar, Counter, ETA, FileTransferSpeed, Percentage, Progre
 
 from utils.helpers import read_config, chain_list, nested_get
 
-logging.basicConfig(level=logging.INFO)
+#logging.basicConfig(level=logging.INFO)
 termsize = map(lambda x: int(x), os.popen('stty size', 'r').read().split())
 config = read_config(__file__)
 
@@ -86,7 +87,9 @@ class Feed(object):
         else:
             if type(feed_name) == unicode:
                 feed_name = feed_name.encode('ascii', errors='ignore')
-            widgets = ['%s (%s->%s):' % ('', feed_url, basename), Percentage(), ' ', Bar(marker=RotatingMarker()),
+            logging.debug('(%s->%s):' % (feed_url, basename))
+            feed_id = ','.join(urlparse.parse_qs(urlparse.urlparse(feed_url).query)['feed'])
+            widgets = ['%s (%s->%s):' % ('', feed_id, basename), Percentage(), ' ', Bar(marker=RotatingMarker()),
                        ' ', ETA(), ' ', FileTransferSpeed()]
             pbar = ProgressBar(widgets=widgets, maxval=content_length).start()
             pbar.start()
@@ -239,9 +242,11 @@ class FeedList(object):
         return self.__api.get_all_feeds_as_csv().getvalue()
 
     def save_feed(self, feed_name, feed_url, filename, tmpfile, if_modified_since):
+        feed_id = ','.join(urlparse.parse_qs(urlparse.urlparse(feed_url).query)['feed'])
         filename = filename.encode('ascii', errors='ignore')
         if not feed_url or feed_url == 'NA':
-            logging.error('URL missing for feed "%s" (url "%s").', feed_name, feed_url)
+            logging.error('URL missing for feed "%s" (id "%s").', feed_name, feed_id)
+            logging.info('Full url was "%s".', feed_url)
             return False, 'Missing url', None
 
         if not self.__overwrite and os.path.isfile(filename):
@@ -256,35 +261,41 @@ class FeedList(object):
                     last_modified = Feed.download_feed(feed_name, feed_url, stream_out, os.path.basename(filename),
                                                        if_modified_since, self.__timeout, self.__user_agent)
                 except TypeError, e:
-                    logging.warning('No zip file for feed "%s" (url "%s") found.', feed_name, feed_url)
+                    logging.warning('No zip file for feed "%s" (id "%s") found.', feed_name, feed_id)
+                    logging.info('Full url was "%s".', feed_url)
                     return False, 'NoZip', None
                 except eventlet.timeout.Timeout, e:
-                    logging.warning('Connection timeout error for feed "%s" (url "%s"). Error was: %s', feed_name,
+                    logging.warning('Connection timeout error for feed "%s" (id "%s"). Error was: %s', feed_name,
                                     feed_url, e)
                     return False, 'Connection timeout', None
                 except urllib2.URLError, e:
                     try:
                         if e.code == 304:
-                            logging.info('File "%s" for feed "%s" (url "%s") is up-to-date.',
-                                         os.path.basename(filename), feed_name, feed_url)
+                            logging.warning('File "%s" for feed "%s" (id "%s") is up-to-date.',
+                                            os.path.basename(filename), feed_name, feed_id)
+                            logging.info('Full url was "%s".', feed_url)
                             return True, 'File "%s" for feed "%s" (url "%s") is up-to-date.' % (
                                 filename, feed_name, feed_url), if_modified_since
                         if e.code == 500:
-                            logging.info('No file (e.g. only developer API) for feed "%s" (url "%s").',
-                                         os.path.basename(filename), feed_url)
+                            logging.warning('No file (e.g. only developer API) for feed "%s" (id "%s").',
+                                            os.path.basename(filename), feed_id)
+                            logging.info('Full url was "%s".', feed_url)
                             return False, 'No file "%s" for feed "%s" (url "%s").' %(
                                 os.path.basename(filename), feed_name, feed_url), None
                     except AttributeError, e:
                         pass
-                    logging.warning('Connection error for feed "%s" (url "%s"). Error was: %s', feed_name, feed_url, e)
+                    logging.warning('Connection error for feed "%s" (id "%s"). Error was: %s', feed_name, feed_id, e)
+                    logging.info('Full url was "%s".', feed_url)
                     return False, 'Connection error', None
                 except (BadStatusLine,socket.error), e:
-                    logging.warning('Connection error for feed "%s" (url "%s"). Unknown status code. Error was: %s', feed_name, feed_url, e)
+                    logging.warning('Connection error for feed "%s" (id "%s"). Unknown status code. Error was: %s', feed_name, feed_id, e)
+                    logging.info('Full url was "%s".', feed_url)
                     return False, 'Connection error', None
 
                 statinfo = os.stat(tmpfile)
                 if statinfo.st_size == 0:
-                    logging.warning('Empty file downloaded for feed "%s" (url "%s").', feed_name, feed_url)
+                    logging.warning('Empty file downloaded for feed "%s" (id "%s").', feed_name, feed_id)
+                    logging.info('Full url was "%s".', feed_url)
                     return False, 'Empty file.', None
 
             logging.debug('Renaming tmpfile="%s" to "%s"' %(tmpfile,filename))
@@ -295,10 +306,12 @@ class FeedList(object):
             try:
                 arch.normalize(replace=True)
             except zipfile.BadZipfile, e:
-                logging.warning('Badzip for feed "%s" (url "%s") downloaded.', feed_name, feed_url)
+                logging.warning('Badzip for feed "%s" (id "%s") downloaded.', feed_name, feed_id)
+                logging.info('Full url was "%s".', feed_url)
                 return False, 'BadZip', last_modified
             except ValueError, e:
-                logging.warning('Missing file in "%s" (url "%s"). Error Message was:', feed_name, feed_url, e)
+                logging.warning('Missing file in "%s" (id "%s"). Error Message was:', feed_name, feed_id, e)
+                logging.info('Full url was "%s".', feed_url)
                 return False, 'Missing file.', last_modified
             return True, 'OK', last_modified
         except KeyboardInterrupt, e:
@@ -322,7 +335,7 @@ class FeedList(object):
             tmpfile=tempfile.mkstemp()[1]
             successful, msg, last_modified = self.save_feed(feed['name'], feed['url'], filename, tmpfile, if_modified_since)
             if os.path.exists(tmpfile):
-                logging.warning('Removing incomplete temporary file.')
+                logging.info('Removing incomplete temporary file.')
                 os.remove(tmpfile)
             self.data[feed['api_id']] = {'successful': successful, 'msg': msg, 'last_modified': last_modified,
                                          'filename': filename}

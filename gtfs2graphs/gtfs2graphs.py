@@ -83,12 +83,17 @@ def pairwise(t):
     it2.next()
     return izip(it, it2)
 
+def reencode(x):
+    if isinstance(x,unicode):
+        return x.encode('utf-8')
+    else:
+        return x.decode('utf-8')
 
 def add_stops2edges(G, stops, route_type, agency, area):
     for x in stops:
         G.add_node(x.stop.stop_name, lat=x.stop.stop_lat, lon=x.stop.stop_lon)
     # utf-8 decoding
-    area = {k.decode('utf-8'): v.decode('utf-8') for k, v in area.iteritems()}
+    area = {reencode(k): reencode(v) for k, v in area.iteritems()}
 
     for x, y in pairwise(stops):
         try:

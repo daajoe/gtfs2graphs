@@ -30,14 +30,20 @@ for file in $(find $path/*.zip -maxdepth 1 -type f) ; do
     printf "Running gtfs2graphs for %s.\n" $file
     $shpath/gtfs2graphs.py $file
     if [ $? -ne 0 ] ; then
-	printf "Error on %s.\n Exiting.\n" $file
-	exit 2
+	printf "Error on %s.\n Exiting.\n" $file >&2
+	rm $gr_file
+	continue
+	#exit 2
     fi
     outputfile=$path/gr/$(basename $file)
     for gr_file in $(find $outputfile*.gr -maxdepth 1 -type f) ; do
 	if [ -n "$validate" ]; then
 	    printf "Validate %s... " $gr_file
 	    $validate/td-validate $gr_file
+	    if [ $? -ne 0 ]; then
+		printf "Deleting gr file %s" $gr_file
+		continue
+	    fi
 	fi
     done;
 done;

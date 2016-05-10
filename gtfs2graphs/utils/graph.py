@@ -23,6 +23,10 @@ class Graph(object):
         self.__node_label = dict()
         self.__edge_label = dict()
 
+    def isolated_vertices(self):
+        non_isolated_vertices = set([v for e in self.__edges for v in e])
+        return set(self.__id_tab.keys()) - non_isolated_vertices
+        
     def add_node(self, x, **label):
         v = self.__vertex_id(x)
         if label:

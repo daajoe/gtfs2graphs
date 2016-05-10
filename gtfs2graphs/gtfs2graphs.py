@@ -113,7 +113,7 @@ def read_and_extract_graph(path, area):
 
 
 def save_graph(G, output_file, stdout, gtfs_filename, output_type, symtab, labels):
-    output = cStringIO.StringIO()
+    output = StringIO.StringIO()
     if output_type == 'gr':
         from utils.graph_output import write_gr as write_graph
         write_graph(G, symtab=symtab, labels=labels, output=output, gtfs_filename=gtfs_filename)

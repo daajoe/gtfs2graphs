@@ -103,7 +103,7 @@ def write_dimacs_like(G, output, symtab=True, labels=True, gtfs_filename='', des
         output.write('c %s \n' % ('-' * 40))
         output.write('c Symbol Table\n')
         for val, num_id in sorted(G.get_symtab().items(), key=operator.itemgetter(1)):
-            output.write('c tab %s | %s\n' % (num_id, val))
+            output.write('c tab %s | %s\n' % (num_id, val.encode('utf-8')))
 
     if labels:
         output.write('c %s \n' % ('-' * 40))

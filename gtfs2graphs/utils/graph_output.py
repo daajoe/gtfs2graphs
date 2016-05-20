@@ -21,6 +21,10 @@ import operator
 
 # TODO: agency mapping and splitting
 
+def remove_chars(x, R='"'):
+    return x.translate(None, R)
+
+
 def quote(x):
     if isinstance(x, int):
         return str(x)
@@ -31,8 +35,6 @@ def quote(x):
 def write_lp(G, output, symtab=True, labels=True, gtfs_filename=''):
     def comment(x):
         return '% ' + '%s' % x
-
-    num_edges = G.number_of_edges()
 
     output.write(comment('original_input_file: %s\n' % gtfs_filename))
     if symtab:
@@ -81,22 +83,23 @@ def write_gml(G, output, symtab=True, labels=True, gtfs_filename=''):
 
     if symtab:
         for val, num_id in sorted(G.get_symtab().items(), key=operator.itemgetter(1)):
-            GML.node[num_id]['label'] = val
+            GML.node[num_id]['label'] = remove_chars(val)
             GML.node[num_id]['gen_id'] = num_id
 
     if labels:
         for edge, val in sorted(G.get_edge_labels().items(), key=operator.itemgetter(0)):
             for k, v in val.iteritems():
-                GML.edge[edge[0]][edge[1]][k] = v
+                GML.edge[edge[0]][edge[1]][k] = remove_chars(v)
 
         for vertex_id, val in sorted(G.get_node_labels().items(), key=operator.itemgetter(0)):
             for k, v in val.iteritems():
-                GML.node[vertex_id][k] = v
+                GML.node[vertex_id][k] = remove_chars(v)
     nx.write_gml(GML.to_undirected(), output)
     return output
 
 
-def write_dimacs_like(G, output, symtab=True, labels=True, gtfs_filename='', descriptor='', edge_char='e ', isolated=False):
+def write_dimacs_like(G, output, symtab=True, labels=True, gtfs_filename='', descriptor='', edge_char='e ',
+                      isolated=False):
     output.write('c Contains a public transit graph extracted from GTFS file\n')
     output.write('c original_input_file: %s\n' % gtfs_filename)
     if symtab:
@@ -113,7 +116,7 @@ def write_dimacs_like(G, output, symtab=True, labels=True, gtfs_filename='', des
 
         output.write('c %s \n' % ('-' * 40))
         output.flush()
-        
+
         output.write('c Vertex Labels\n')
         for vertex_id, val in sorted(G.get_node_labels().items(), key=operator.itemgetter(0)):
             output.write('c node %s | %s\n' % (vertex_id, val))
@@ -122,16 +125,18 @@ def write_dimacs_like(G, output, symtab=True, labels=True, gtfs_filename='', des
 
     output.write('p %s %i %i\n' % (descriptor, G.num_vertices(), G.num_edges()))
     for x, y in G:
-        output.write('%s%s %s\n' % (edge_char,x, y))
+        output.write('%s%s %s\n' % (edge_char, x, y))
     if isolated:
         for x in G.isolated_vertices():
             output.write('%s%s\n' % (edge_char, x))
-        
+
     output.flush()
     return output
 
+
 def write_dimacs(G, output, symtab=True, labels=True, gtfs_filename=''):
     return write_dimacs_like(G, output, symtab=True, labels=True, gtfs_filename='', descriptor='edge', edge_char='e ')
+
 
 def write_gr(G, output, symtab=True, labels=True, gtfs_filename=''):
     return write_dimacs_like(G, output, symtab=True, labels=True, gtfs_filename='', descriptor='tw', edge_char='')

@@ -21,8 +21,15 @@ import operator
 
 # TODO: agency mapping and splitting
 
-def remove_chars(x, R='"'):
-    return x.translate(None, R)
+def remove_chars(x, punct='"'):
+    if isinstance(x, str):
+        return x.translate(None, punct)
+    elif isinstance(x, unicode):
+        punct = dict((ord(char), None) for char in punct)
+        return x.translate(punct)
+    elif x is None:
+        return "None"
+    return x
 
 
 def quote(x):

@@ -45,13 +45,15 @@ setup_logging()
 termsize = map(lambda x: int(x), os.popen('stty size', 'r').read().split())
 config = read_config(__file__)
 
+
 def options():
     print
     usage = 'usage: %prog [options] file'
     parser = optparse.OptionParser(usage=usage)
     group = optparse.OptionGroup(parser, 'Remark',
-                        'Please put your API key into "%s/conf/get_feeds_conf.yaml" behind "key:" in quotes. '
-                        'You can obtain an API key at "https://transitfeeds.com/api/keys"' %os.path.dirname(sys.argv[0]))
+                                 'Please put your API key into "%s/conf/get_feeds_conf.yaml" behind "key:" in quotes. '
+                                 'You can obtain an API key at "https://transitfeeds.com/api/keys"' % os.path.dirname(
+                                     sys.argv[0]))
     parser.add_option_group(group)
     opts, files = parser.parse_args(sys.argv[1:])
     return opts, path
@@ -73,14 +75,14 @@ class Feed(object):
         eventlet.monkey_patch()
         with eventlet.Timeout(timeout):
             accepted = 'application/zip', 'application/x-zip-compressed'
-            request = urllib2.Request(feed_url, headers={'User-agent': user_agent, #'Accept': ','.join(accepted),
+            request = urllib2.Request(feed_url, headers={'User-agent': user_agent,  # 'Accept': ','.join(accepted),
                                                          'If-Modified-Since': timestamp})
             response = urllib2.urlopen(request)
 
         if response.info().get('content-type') not in accepted:
             logging.error('Wrong Content Type for url %s', feed_url)
             raise TypeError('Wrong Content Type for feed "%s" (url: "%s"). Expected type "%s" was %s' % (
-            feed_name, feed_url, ','.join(accepted), response.info().get('content-type')))
+                feed_name, feed_url, ','.join(accepted), response.info().get('content-type')))
 
         content_length = int(response.info().get('content-length'))
         last_modified = response.info().get('last-modified')
@@ -133,7 +135,7 @@ class TransitFeedAPI(object):
         try:
             response = urllib2.urlopen(request)
         except urllib2.URLError, e:
-            logging.critical('Cannot connect to transit feed api. Error was "%s"' %e)
+            logging.critical('Cannot connect to transit feed api. Error was "%s"' % e)
             exit(1)
 
         if response.getcode() != 200:
@@ -166,7 +168,7 @@ class TransitFeedAPI(object):
             for i in xrange(2, num_pages + 1):
                 results.extend(self.get_feeds_from_page(page=i)[0])
             results.sort()
-            #filter by blacklist
+            # filter by blacklist
             results = filter(lambda x: not any(e in x['t'] for e in self.__blacklist), results)
             return results, timestamp
         except urllib2.HTTPError, e:
@@ -190,8 +192,8 @@ class TransitFeedAPI(object):
     @staticmethod
     def _dataset(feed, m, timestamp, feed_url):
         ret = [nested_get(feed, v) for v in m.itervalues()]
-        #fix download url to TransitFeed (not the data provider)
-        ret[2]=feed_url %urllib.quote_plus(ret[0])
+        # fix download url to TransitFeed (not the data provider)
+        ret[2] = feed_url % urllib.quote_plus(ret[0])
         ret.append(timestamp)
         return ret
 
@@ -223,15 +225,17 @@ class TransitFeedAPI(object):
     def get_all_feeds_as_csv(self, stream=StringIO()):
         L = self._feeds2list()
         return self._feedlist2csv(L, stream)
-        
+
 
 from utils.normalize_gtfs_archive import FeedArchive
 
 
 class FeedList(object):
-    def __init__(self, key, url, feed_download_url, path='./feeds', overwrite=False, datafile='./conf/data.yaml', timeout=10,
+    def __init__(self, key, url, feed_download_url, path='./feeds', overwrite=False, datafile='./conf/data.yaml',
+                 timeout=10,
                  user_agent='Mozilla/5.0 (Linux i686)', blacklist=None):
-        self.__api = TransitFeedAPI(key=key, limit=100, feed_url=url, feed_download_url=feed_download_url, blacklist=blacklist)
+        self.__api = TransitFeedAPI(key=key, limit=100, feed_url=url, feed_download_url=feed_download_url,
+                                    blacklist=blacklist)
         self.__overwrite = overwrite
         path = os.path.realpath(path)
         if not os.path.exists(path):
@@ -266,7 +270,7 @@ class FeedList(object):
             return True, 'File exists.', None
         try:
             # download feed
-            logging.debug('Saving download to tmpfile="%s"' %tmpfile)
+            logging.debug('Saving download to tmpfile="%s"' % tmpfile)
             with open(tmpfile, 'wb') as stream_out:
                 # timestamp=time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(time.time()))
                 try:
@@ -289,18 +293,21 @@ class FeedList(object):
                             return True, 'File "%s" for feed "%s" (url "%s") is up-to-date.' % (
                                 filename, feed_name, feed_url), if_modified_since
                         if e.code == 500:
-                            logging.warning('No file (e.g. only developer API) for feed "%s" (id "%s").',
-                                            os.path.basename(filename), feed_id)
+                            logging.warning(
+                                'No file for feed "%s" (id "%s"). No need to worry. It\'s likely just a (real-time) '
+                                'developer API, which we currently do not support.',
+                                os.path.basename(filename), feed_id)
                             logging.info('Full url was "%s".', feed_url)
-                            return False, 'No file "%s" for feed "%s" (url "%s").' %(
+                            return False, 'No file "%s" for feed "%s" (url "%s").' % (
                                 os.path.basename(filename), feed_name, feed_url), None
                     except AttributeError, e:
                         pass
                     logging.warning('Connection error for feed "%s" (id "%s"). Error was: %s', feed_name, feed_id, e)
                     logging.info('Full url was "%s".', feed_url)
                     return False, 'Connection error', None
-                except (BadStatusLine,socket.error), e:
-                    logging.warning('Connection error for feed "%s" (id "%s"). Unknown status code. Error was: %s', feed_name, feed_id, e)
+                except (BadStatusLine, socket.error), e:
+                    logging.warning('Connection error for feed "%s" (id "%s"). Unknown status code. Error was: %s',
+                                    feed_name, feed_id, e)
                     logging.info('Full url was "%s".', feed_url)
                     return False, 'Connection error', None
 
@@ -310,7 +317,7 @@ class FeedList(object):
                     logging.info('Full url was "%s".', feed_url)
                     return False, 'Empty file.', None
 
-            logging.debug('Renaming tmpfile="%s" to "%s"' %(tmpfile,filename))
+            logging.debug('Renaming tmpfile="%s" to "%s"' % (tmpfile, filename))
             shutil.move(tmpfile, filename)
             logging.debug('Renaming done.')
             # normalize feed
@@ -343,9 +350,10 @@ class FeedList(object):
             d = self.data.get(feed['api_id'])
             if_modified_since = d.get('last_modified') if d and d.get('successful') else 'Thu, 01 Jan 1970 00:00:00 GMT'
             filename = '%s/%s.zip' % (
-            self.__path, feed['name'].replace(' ', '_').replace('/', '-').encode('ascii', errors='ignore'))
-            tmpfile=tempfile.mkstemp()[1]
-            successful, msg, last_modified = self.save_feed(feed['name'], feed['url'], filename, tmpfile, if_modified_since)
+                self.__path, feed['name'].replace(' ', '_').replace('/', '-').encode('ascii', errors='ignore'))
+            tmpfile = tempfile.mkstemp()[1]
+            successful, msg, last_modified = self.save_feed(feed['name'], feed['url'], filename, tmpfile,
+                                                            if_modified_since)
             if os.path.exists(tmpfile):
                 logging.info('Removing incomplete temporary file.')
                 os.remove(tmpfile)
@@ -364,11 +372,12 @@ def signal_handler(signum):
 
 signal.signal(signal.SIGQUIT, signal_handler)
 
-
 if __name__ == '__main__':
     opts, path = options()
     feed_download_url = config['get_feed_url']
-    feed_download_url = feed_download_url.replace('%key',config['key'])
-    o = FeedList(key=config['key'], url=config['feed_url'], feed_download_url=feed_download_url, path=config['feed_path'],
-                 overwrite=True, timeout=config['timeout'], user_agent=config['user_agent'], blacklist=config['blacklist'])
+    feed_download_url = feed_download_url.replace('%key', config['key'])
+    o = FeedList(key=config['key'], url=config['feed_url'], feed_download_url=feed_download_url,
+                 path=config['feed_path'],
+                 overwrite=True, timeout=config['timeout'], user_agent=config['user_agent'],
+                 blacklist=config['blacklist'])
     o.save_all_feeds()

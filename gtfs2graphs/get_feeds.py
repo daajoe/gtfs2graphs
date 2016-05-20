@@ -365,7 +365,8 @@ class FeedList(object):
             self.dump_yaml()
 
 
-def signal_handler(signum):
+# noinspection PyUnusedLocal
+def signal_handler(signum, frame):
     logging.error('Signal %i received' % signum)
     logging.error('Writing progress to file')
     o.dump_yaml()

@@ -1,2 +1,2 @@
-from get_feeds import *
+#from get_feeds import *
 

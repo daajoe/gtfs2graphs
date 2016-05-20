@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright 2016
-# Johannes K. Fichte, Vienna University of Technology, Austria
+# Johannes K. Fichte, TU Wien, Austria
 #
 # gtfs2graphs is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -342,17 +342,6 @@ class FeedList(object):
             self.dump_yaml()
 
 
-# import httpretty
-# httpretty.enable()
-# def request_callback(request, uri, headers):
-#     with open('test_%s.json' %request.querystring['page'][0]) as f:
-#         data = json.load(f)
-#         return (200,headers, json.dumps(data))
-# httpretty.register_uri(httpretty.GET, config['feed_url'],body=request_callback,content_type='text/json')
-#                        # responses=[httpretty.Response(content_type='text/json',body='',status=200),
-#                        #            httpretty.Response(content_type='text/json',body='',status=200)])
-# #httpretty.disable()
-
 feed_download_url = config['get_feed_url']
 
 feed_download_url = feed_download_url.replace('%key',config['key'])
@@ -360,8 +349,6 @@ feed_download_url = feed_download_url.replace('%key',config['key'])
 o = FeedList(key=config['key'], url=config['feed_url'], feed_download_url=feed_download_url, path=config['feed_path'], 
              overwrite=True, timeout=config['timeout'], user_agent=config['user_agent'], blacklist=config['blacklist'])
 
-
-#o.save_feed('my_feed',"http://data.cabq.gov/transit/gtfs/google_transit.zip",'test.zip')
 
 def signal_handler(signum, frame):
     logging.error('Signal %i received' % signum)

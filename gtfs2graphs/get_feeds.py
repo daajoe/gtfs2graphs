@@ -56,7 +56,7 @@ def options():
                                      sys.argv[0]))
     parser.add_option_group(group)
     opts, files = parser.parse_args(sys.argv[1:])
-    return opts, path
+    return opts, []
 
 
 class Feed(object):
@@ -151,6 +151,9 @@ class TransitFeedAPI(object):
 
         if feeds['status'] != 'OK':
             logging.error('Result from API was NOT ok.')
+            if feeds['status'] == 'EMPTYKEY':
+                logging.critical(feeds['msg'])
+                exit(1)
             raise RuntimeError('API query was unsucessful. Response %s' % feeds)
 
         if self.__limit != feeds['results']['limit']:

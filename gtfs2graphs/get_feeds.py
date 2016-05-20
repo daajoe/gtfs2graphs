@@ -17,10 +17,9 @@
 
 import collections
 import csv
-from httplib import BadStatusLine
-from itertools import ifilter
 import json
 import logging
+import optparse
 import os
 import shutil
 import signal
@@ -32,9 +31,11 @@ import urllib2
 import urlparse
 import zipfile
 from StringIO import StringIO
+from httplib import BadStatusLine
 from itertools import izip
 
 import eventlet
+import sys
 import yaml
 from progressbar import Bar, Counter, ETA, FileTransferSpeed, Percentage, ProgressBar, RotatingMarker, Timer
 
@@ -43,6 +44,17 @@ from utils.helpers import read_config, chain_list, nested_get, setup_logging
 setup_logging()
 termsize = map(lambda x: int(x), os.popen('stty size', 'r').read().split())
 config = read_config(__file__)
+
+def options():
+    print
+    usage = 'usage: %prog [options] file'
+    parser = optparse.OptionParser(usage=usage)
+    group = optparse.OptionGroup(parser, 'Remark',
+                        'Please put your API key into "%s/conf/get_feeds_conf.yaml" behind "key:" in quotes. '
+                        'You can obtain an API key at "https://transitfeeds.com/api/keys"' %os.path.dirname(sys.argv[0]))
+    parser.add_option_group(group)
+    opts, files = parser.parse_args(sys.argv[1:])
+    return opts, path
 
 
 class Feed(object):
@@ -342,15 +354,7 @@ class FeedList(object):
             self.dump_yaml()
 
 
-feed_download_url = config['get_feed_url']
-
-feed_download_url = feed_download_url.replace('%key',config['key'])
-
-o = FeedList(key=config['key'], url=config['feed_url'], feed_download_url=feed_download_url, path=config['feed_path'], 
-             overwrite=True, timeout=config['timeout'], user_agent=config['user_agent'], blacklist=config['blacklist'])
-
-
-def signal_handler(signum, frame):
+def signal_handler(signum):
     logging.error('Signal %i received' % signum)
     logging.error('Writing progress to file')
     o.dump_yaml()
@@ -360,4 +364,11 @@ def signal_handler(signum, frame):
 
 signal.signal(signal.SIGQUIT, signal_handler)
 
-o.save_all_feeds()
+
+if __name__ == '__main__':
+    opts, path = options()
+    feed_download_url = config['get_feed_url']
+    feed_download_url = feed_download_url.replace('%key',config['key'])
+    o = FeedList(key=config['key'], url=config['feed_url'], feed_download_url=feed_download_url, path=config['feed_path'],
+                 overwrite=True, timeout=config['timeout'], user_agent=config['user_agent'], blacklist=config['blacklist'])
+    o.save_all_feeds()

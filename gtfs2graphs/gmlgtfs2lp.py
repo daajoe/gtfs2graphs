@@ -14,6 +14,9 @@
 # details.  You should have received a copy of the GNU General Public
 # License along with gtfs2graphs.  If not, see
 # <http://www.gnu.org/licenses/>.
+#
+# Allows to convert existing gml files into lp-files.
+#
 
 import logging
 import optparse

@@ -4,8 +4,8 @@
 
 ## Input ##
 
-* gtfs format, see General Transit Feed Specification (GTFS) by Google
-  [https://developers.google.com/transit/gtfs/] for details
+* gtfs format, see [General Transit Feed Specification (GTFS) by Google]
+  (https://developers.google.com/transit/gtfs/) for details
 
 ## Output ##
 
@@ -48,10 +48,10 @@
 * progressbar
 
 ## References / Links ##
-[Extended GTFS Route Types] (https://support.google.com/transitpartners/answer/3520902?hl=en)
-[Google Transit Extensions to GTFS] (https://support.google.com/transitpartners/answer/2450962?hl=en)
-[General Transit Feed Specification Reference] (https://developers.google.com/transit/gtfs/reference?hl=en#routes_fields)
-[What is GTFS?] (https://developers.google.com/transit/gtfs/?hl=en)
-[googletransitdatafeed] (https://code.google.com/p/googletransitdatafeed/wiki/PublicFeeds)
-[Transit Agencies Providing GTFS Data] (http://www.gtfs-data-exchange.com/agencies/bylocation#filter_official)
-[Transit Feeds API] (https://transitfeeds.com)
+* [Extended GTFS Route Types] (https://support.google.com/transitpartners/answer/3520902?hl=en)
+* [Google Transit Extensions to GTFS] (https://support.google.com/transitpartners/answer/2450962?hl=en)
+* [General Transit Feed Specification Reference] (https://developers.google.com/transit/gtfs/reference?hl=en#routes_fields)
+* [What is GTFS?] (https://developers.google.com/transit/gtfs/?hl=en)
+* [googletransitdatafeed] (https://code.google.com/p/googletransitdatafeed/wiki/PublicFeeds)
+* [Transit Agencies Providing GTFS Data] (http://www.gtfs-data-exchange.com/agencies/bylocation#filter_official)
+* [Transit Feeds API] (https://transitfeeds.com)

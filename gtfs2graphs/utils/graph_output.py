@@ -15,8 +15,23 @@
 # License along with gtfs2graphs.  If not, see
 # <http://www.gnu.org/licenses/>.
 
+import getpass
 import logging
 import operator
+from time import gmtime, strftime
+
+references_string = r'''
+Graphs generated from publicly available GTFS transit feeds.
+
+References
+[1] https://en.wikipedia.org/wiki/General_Transit_Feed_Specification or
+[2] https://developers.google.com/transit/gtfs/
+[3] https://github.com/daajoe/transit_graphs/blob/master/transitfeeds-tw.pdf
+[4] Johannes K. Fichte. https://github.com/daajoe/gtfs2graphs (2017).
+
+GTFS feeds extracted using gtfs2graphs [4].
+
+'''
 
 
 # TODO: agency mapping and splitting
@@ -105,10 +120,19 @@ def write_gml(G, output, symtab=True, labels=True, gtfs_filename=''):
     return output
 
 
-def write_dimacs_like(G, output, symtab=True, labels=True, gtfs_filename='', descriptor='', edge_char='e ',
-                      isolated=False):
-    output.write('c Contains a public transit graph extracted from GTFS file\n')
-    output.write('c original_input_file: %s\n' % gtfs_filename)
+def write_dimacs_like(G, output, symtab=False, labels=False, gtfs_filename='', descriptor='', edge_char='e ',
+                      isolated=False, agency=None):
+    output.write('p %s %i %i\n' % (descriptor, G.num_vertices(), G.num_edges()))
+
+    for line in references_string.split('\n'):
+        output.write('c %s\n' % line)
+    output.write('c Author: %s (%s)\n' % (getpass.getuser(), strftime("%Y-%m-%d %H:%M:%S", gmtime())))
+    output.write('c Origin: %s\n' % gtfs_filename)
+
+    if agency:
+        for line in agency:
+            output.write('c Agency Info/URL: %s\n' % line)
+
     if symtab:
         output.write('c %s \n' % ('-' * 40))
         output.write('c Symbol Table\n')
@@ -130,7 +154,6 @@ def write_dimacs_like(G, output, symtab=True, labels=True, gtfs_filename='', des
         output.flush()
         output.write('c %s \n' % ('-' * 40))
 
-    output.write('p %s %i %i\n' % (descriptor, G.num_vertices(), G.num_edges()))
     for x, y in G:
         output.write('%s%s %s\n' % (edge_char, x, y))
     if isolated:
@@ -141,9 +164,13 @@ def write_dimacs_like(G, output, symtab=True, labels=True, gtfs_filename='', des
     return output
 
 
-def write_dimacs(G, output, symtab=True, labels=True, gtfs_filename=''):
-    return write_dimacs_like(G, output, symtab=True, labels=True, gtfs_filename='', descriptor='edge', edge_char='e ')
+def write_dimacs(G, output, symtab=True, labels=True, gtfs_filename='', agency=None):
+    return write_dimacs_like(G, output, symtab=symtab, labels=labels, gtfs_filename=gtfs_filename, descriptor='edge',
+                             edge_char='e ',
+                             agency=agency)
 
 
-def write_gr(G, output, symtab=True, labels=True, gtfs_filename=''):
-    return write_dimacs_like(G, output, symtab=True, labels=True, gtfs_filename='', descriptor='tw', edge_char='')
+def write_gr(G, output, symtab=True, labels=True, gtfs_filename='', agency=None):
+    return write_dimacs_like(G, output, symtab=symtab, labels=labels, gtfs_filename=gtfs_filename, descriptor='tw',
+                             edge_char='',
+                             agency=agency)

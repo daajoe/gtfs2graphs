@@ -38,10 +38,10 @@ def options():
     parser = optparse.OptionParser(usage=usage)
     parser.add_option('--output_file', dest='output_file', type='string',
                       help='Output file name [default: "./%type%/%file%.%type%"]', default=None)
-    parser.add_option('--no_symtab', dest='symtab', action='store_false', default=True,
-                      help='Do not output symtab [default: %default]')
-    parser.add_option('--no_labels', dest='labels', action='store_false', default=True,
-                      help='Do not output labels [default: %default]')
+    parser.add_option('--print_symtab', dest='symtab', action='store_true', default=False,
+                      help='Output symtab [default: %default]')
+    parser.add_option('--print_labels', dest='labels', action='store_true', default=False,
+                      help='Output labels [default: %default]')
     parser.add_option('--stdout', dest='stdout', default=False,
                       help='Write output to stdout [default: %default]', action='store_true')
     parser.add_option('--no_split', dest='split', default=True, action='store_false',
@@ -66,12 +66,13 @@ def options():
             logging.error('File "%s" is not a zipfile.' % path)
             exit(1)
     if not opts.output_file:
-        opts.output_file = '%s/%s/%s.%s' % (os.path.dirname(path), opts.output_type, os.path.basename(path), opts.output_type)
+        opts.output_file = '%s/%s/%s.%s' % (
+        os.path.dirname(path), opts.output_type, os.path.basename(path), opts.output_type)
         directory = os.path.dirname(opts.output_file)
         if not os.path.exists(directory):
             os.makedirs(directory)
         logging.warning(
-                'No outputfile given (by option --output_file) using default output file "%s"' % opts.output_file)
+            'No outputfile given (by option --output_file) using default output file "%s"' % opts.output_file)
     return opts, path
 
 
@@ -83,11 +84,13 @@ def pairwise(t):
     it2.next()
     return izip(it, it2)
 
+
 def reencode(x):
-    if isinstance(x,unicode):
+    if isinstance(x, unicode):
         return x.encode('utf-8')
     else:
         return x.decode('utf-8')
+
 
 def add_stops2edges(G, stops, route_type, agency, area):
     for x in stops:
@@ -117,14 +120,14 @@ def read_and_extract_graph(path, area):
     return G
 
 
-def save_graph(G, output_file, stdout, gtfs_filename, output_type, symtab, labels):
+def save_graph(G, output_file, stdout, gtfs_filename, output_type, symtab, labels, feed_infos):
     output = StringIO.StringIO()
     if output_type == 'gr':
         from utils.graph_output import write_gr as write_graph
-        write_graph(G, symtab=symtab, labels=labels, output=output, gtfs_filename=gtfs_filename)
+        write_graph(G, symtab=symtab, labels=labels, output=output, gtfs_filename=gtfs_filename, agency=feed_infos)
     elif output_type == 'dimacs':
         from utils.graph_output import write_dimacs as write_graph
-        write_graph(G, symtab=symtab, labels=labels, output=output, gtfs_filename=gtfs_filename)
+        write_graph(G, symtab=symtab, labels=labels, output=output, gtfs_filename=gtfs_filename, agency=feed_infos)
     elif output_type == 'lp':
         from utils.graph_output import write_lp as write_graph
         write_graph(G, symtab=symtab, labels=labels, output=output, gtfs_filename=gtfs_filename)
@@ -150,9 +153,10 @@ if __name__ == '__main__':
     agencies_mapping = gtfs_info_config['agencies']['mappings']
     places = info(path, 'agency.txt', lambda x, y: agencies(x, y, agencies_mapping))
     places = {e[0]: e[2] for e in places[1]}
+    feed_infos=get_additional_infos(path)
     G = read_and_extract_graph(path, places)
     save_graph(G, output_file=opts.output_file, stdout=opts.stdout, gtfs_filename=os.path.basename(path),
-               output_type=opts.output_type, symtab=opts.symtab, labels=opts.labels)
+               output_type=opts.output_type, symtab=opts.symtab, labels=opts.labels, feed_infos=feed_infos)
 
     D = extract_route_types(G)
     for k, g in D.iteritems():
@@ -160,4 +164,4 @@ if __name__ == '__main__':
         output_filename = '%s_%s%s' % (output_filename, k, output_file_extension)
         filename = opts.output_file
         save_graph(g, output_file=output_filename, stdout=opts.stdout, gtfs_filename=os.path.basename(path),
-                   output_type=opts.output_type, symtab=opts.symtab, labels=opts.labels)
+                   output_type=opts.output_type, symtab=opts.symtab, labels=opts.labels, feed_infos=feed_infos)

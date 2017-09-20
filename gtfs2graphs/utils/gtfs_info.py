@@ -172,6 +172,17 @@ def info(path, filename, func):
     return res
 
 
+def get_additional_infos(filename):
+    data = None
+    try:
+        with zopen(filename, 'feed_info.txt') as fh:
+            data = fh.replace('\r', '').split('\n')
+    except KeyError:
+        with zopen(filename, 'agency.txt') as fh:
+            data = fh.replace('\r','').split('\n')
+    return data
+
+
 def csv2stdout(d):
     writer = csv.writer(sys.stdout, delimiter=',')
     writer.writerow(d[0])

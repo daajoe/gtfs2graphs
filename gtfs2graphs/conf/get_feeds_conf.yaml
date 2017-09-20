@@ -4,7 +4,7 @@ get_feed_url: 'https://api.transitfeeds.com/v1/getLatestFeedVersion?key=%key&fee
 #get_feed_url: 'https://transitfeeds.com/p/%s/latest/download'
 key: ''
 user_agent: 'Mozilla/5.0 (Linux i686)'
-feed_path: './feeds'
+feed_path: '../feeds'
 timeout: 10
 #list of keywords where we usually only expect realtime data 
 #(those feeds mostly only available via a specific transport agency API)

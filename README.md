@@ -1,6 +1,7 @@
 # gtfs2graphs - A Transit Feed to Graph Format Converter #
 
 * https://github.com/daajoe/gtfs2graphs
+* [Brief Documentation (PDF)](https://github.com/daajoe/transit_graphs/blob/master/transitfeeds-tw.pdf)
 
 ## Input ##
 
